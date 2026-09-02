@@ -49,30 +49,16 @@
     .sort-marker{font-size:10px;margin-left:3px}
     .sync{font-size:12px;color:var(--muted);padding:7px 10px;border-radius:999px;background:var(--soft);white-space:nowrap}
     .sync.ok{color:var(--good);background:#ecfdf3}.sync.bad{color:var(--bad);background:#fef2f2}
-    .auth-screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:20px}
-    .auth-card{width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 18px 50px rgba(17,24,39,.08)}
-    .auth-card h2{font-size:22px;margin-bottom:7px}.auth-card p{margin:0 0 18px;line-height:1.45}.auth-card input{margin-bottom:10px}
-    .auth-card button{width:100%}.auth-error{min-height:18px;margin-top:9px!important;color:var(--bad)!important}
     @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.filters,.formgrid{grid-template-columns:1fr 1fr}.wrap{padding:12px}}
     @media(max-width:700px){.filters,.formgrid{grid-template-columns:1fr}.analytics-table{display:none}.analytics-mobile{display:block}.actions{width:100%}.actions button{flex:1}.tabs{display:grid;width:100%}h1{font-size:21px}}
   </style>
 </head>
 <body>
-  <div id="authScreen" class="auth-screen">
-    <form id="authForm" class="auth-card">
-      <h2>URALSTORE</h2>
-      <p class="note">Введите общий код команды, чтобы открыть нормативы и аналитику.</p>
-      <label for="teamCode">Код команды</label>
-      <input id="teamCode" type="password" autocomplete="current-password" required>
-      <button id="loginBtn" class="primary" type="submit">Войти</button>
-      <p id="authError" class="note auth-error"></p>
-    </form>
-  </div>
   <div class="wrap">
     <div class="top">
       <div>
         <h1>URALSTORE — нормативы и закупка</h1>
-        <div class="sub">v0.4 • общая база • нормативы и аналитика текущего остатка</div>
+        <div class="sub">v0.4 • открытая общая база • нормативы и аналитика текущего остатка</div>
       </div>
       <div class="actions">
         <span id="syncState" class="sync">Подключение…</span>
@@ -80,7 +66,6 @@
         <button id="importBtn">Импорт копии</button>
         <input id="importFile" class="hidden" type="file" accept="application/json,.json">
         <button class="primary" id="addBtn">+ Добавить норматив</button>
-        <button id="logoutBtn">Выйти</button>
       </div>
     </div>
 
@@ -169,8 +154,7 @@
     const BACKUP_SCHEMA='uralstore-norms-backup';
     const SUPABASE_URL='https://cwzobgsgsfbcaryspunh.supabase.co';
     const SUPABASE_KEY='sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x';
-    const TEAM_EMAIL='team@uralstore.ru';
-    const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+    const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
     const defaults=[
       {id:1,category:'iPhone новые',name:'iPhone 17 Pro Max 256 GB eSIM',type:'sku',normQty:3,normCapital:310000},
       {id:2,category:'iPhone новые',name:'iPhone 17 Pro 256 GB eSIM',type:'sku',normQty:3,normCapital:285000},
@@ -345,13 +329,12 @@
     async function startApp(){
       try{
         await loadCloudData();
-        $('authScreen').classList.add('hidden');
         if(realtimeChannel)await db.removeChannel(realtimeChannel);
         realtimeChannel=db.channel('norms-shared').on('postgres_changes',{event:'*',schema:'public',table:'norms'},()=>{
           clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>loadCloudData().catch(()=>{}),250)
         }).subscribe()
       }catch(error){
-        $('authScreen').classList.remove('hidden');$('authError').textContent='Не удалось открыть общую базу: '+error.message
+        setSync('Ошибка общей базы','bad');alert('Не удалось открыть общую базу: '+error.message)
       }
     }
 
@@ -371,14 +354,7 @@
     $('analyticsSearch').oninput=renderAnalytics;$('analyticsCategory').onchange=renderAnalytics;$('analyticsSort').onchange=renderAnalytics;
     $('resetDemo').onclick=async()=>{if(confirm('Вернуть нормативы v0.2 в общей базе? Текущие общие данные будут заменены. Сначала рекомендуется экспортировать резервную копию.')){try{await replaceCloud(structuredClone(defaults))}catch(error){setSync('Не сохранено','bad');alert(error.message)}}};
     $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('importFile').click();$('importFile').onchange=e=>e.target.files[0]&&importBackup(e.target.files[0]);
-    $('authForm').onsubmit=async event=>{
-      event.preventDefault();$('authError').textContent='';$('loginBtn').disabled=true;$('loginBtn').textContent='Вход…';
-      const {error}=await db.auth.signInWithPassword({email:TEAM_EMAIL,password:$('teamCode').value});
-      if(error){$('authError').textContent='Неверный код команды';$('loginBtn').disabled=false;$('loginBtn').textContent='Войти';return}
-      $('teamCode').value='';$('loginBtn').disabled=false;$('loginBtn').textContent='Войти';await startApp()
-    };
-    $('logoutBtn').onclick=async()=>{if(realtimeChannel)await db.removeChannel(realtimeChannel);await db.auth.signOut();$('authScreen').classList.remove('hidden');$('authError').textContent='';setSync('Нет подключения')};
-    (async()=>{const {data:{session}}=await db.auth.getSession();if(session)await startApp();else{$('authScreen').classList.remove('hidden');setSync('Требуется вход')}})();
+    startApp();
   </script>
 </body>
 </html>
