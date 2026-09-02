@@ -47,22 +47,40 @@
     .position-values span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
     .position-values b{font-size:14px}
     .sort-marker{font-size:10px;margin-left:3px}
+    .sync{font-size:12px;color:var(--muted);padding:7px 10px;border-radius:999px;background:var(--soft);white-space:nowrap}
+    .sync.ok{color:var(--good);background:#ecfdf3}.sync.bad{color:var(--bad);background:#fef2f2}
+    .auth-screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:20px}
+    .auth-card{width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 18px 50px rgba(17,24,39,.08)}
+    .auth-card h2{font-size:22px;margin-bottom:7px}.auth-card p{margin:0 0 18px;line-height:1.45}.auth-card input{margin-bottom:10px}
+    .auth-card button{width:100%}.auth-error{min-height:18px;margin-top:9px!important;color:var(--bad)!important}
     @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.filters,.formgrid{grid-template-columns:1fr 1fr}.wrap{padding:12px}}
     @media(max-width:700px){.filters,.formgrid{grid-template-columns:1fr}.analytics-table{display:none}.analytics-mobile{display:block}.actions{width:100%}.actions button{flex:1}.tabs{display:grid;width:100%}h1{font-size:21px}}
   </style>
 </head>
 <body>
+  <div id="authScreen" class="auth-screen">
+    <form id="authForm" class="auth-card">
+      <h2>URALSTORE</h2>
+      <p class="note">Введите общий код команды, чтобы открыть нормативы и аналитику.</p>
+      <label for="teamCode">Код команды</label>
+      <input id="teamCode" type="password" autocomplete="current-password" required>
+      <button id="loginBtn" class="primary" type="submit">Войти</button>
+      <p id="authError" class="note auth-error"></p>
+    </form>
+  </div>
   <div class="wrap">
     <div class="top">
       <div>
         <h1>URALSTORE — нормативы и закупка</h1>
-        <div class="sub">v0.3 • аналитика текущего остатка • данные сохраняются на этом устройстве</div>
+        <div class="sub">v0.4 • общая база • нормативы и аналитика текущего остатка</div>
       </div>
       <div class="actions">
+        <span id="syncState" class="sync">Подключение…</span>
         <button id="exportBtn">Экспорт копии</button>
         <button id="importBtn">Импорт копии</button>
         <input id="importFile" class="hidden" type="file" accept="application/json,.json">
         <button class="primary" id="addBtn">+ Добавить норматив</button>
+        <button id="logoutBtn">Выйти</button>
       </div>
     </div>
 
@@ -145,9 +163,14 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script>
     const KEY='uralstore_norms_v02';
     const BACKUP_SCHEMA='uralstore-norms-backup';
+    const SUPABASE_URL='https://cwzobgsgsfbcaryspunh.supabase.co';
+    const SUPABASE_KEY='sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x';
+    const TEAM_EMAIL='team@uralstore.ru';
+    const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
     const defaults=[
       {id:1,category:'iPhone новые',name:'iPhone 17 Pro Max 256 GB eSIM',type:'sku',normQty:3,normCapital:310000},
       {id:2,category:'iPhone новые',name:'iPhone 17 Pro 256 GB eSIM',type:'sku',normQty:3,normCapital:285000},
@@ -194,11 +217,42 @@
       out.type=out.type==='sku'?'sku':'group';
       return out;
     };
-    let data;
-    try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');data=Array.isArray(stored)?stored.map(normalize):structuredClone(defaults)}catch{data=structuredClone(defaults)}
-    let editing=null;
+    let cachedData;
+    try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');cachedData=Array.isArray(stored)?stored.map(normalize):structuredClone(defaults)}catch{cachedData=structuredClone(defaults)}
+    let data=structuredClone(cachedData),editing=null,realtimeChannel=null,reloadTimer=null;
 
-    function save(){localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
+    const toDb=x=>({id:x.id,category:x.category,name:x.name,type:x.type,norm_qty:x.normQty,norm_capital:x.normCapital,qty:x.qty,avg_cost:x.avg,market_price:x.market,sales_per_month:x.sales,min_margin:x.minMargin});
+    const fromDb=x=>normalize({id:x.id,category:x.category,name:x.name,type:x.type,normQty:x.norm_qty,normCapital:x.norm_capital,qty:x.qty,avg:x.avg_cost,market:x.market_price,sales:x.sales_per_month,minMargin:x.min_margin});
+    function cacheAndRender(){localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
+    function setSync(text,state=''){$('syncState').textContent=text;$('syncState').className='sync'+(state?' '+state:'')}
+    async function loadCloudData(){
+      setSync('Синхронизация…');
+      const {data:rows,error}=await db.from('norms').select('*').order('id');
+      if(error){setSync('Ошибка синхронизации','bad');throw error}
+      if(rows.length===0){
+        const seed=cachedData.length?cachedData:structuredClone(defaults);
+        const {error:seedError}=await db.from('norms').upsert(seed.map(toDb));
+        if(seedError){setSync('Ошибка переноса данных','bad');throw seedError}
+        data=seed;
+      }else data=rows.map(fromDb);
+      cachedData=structuredClone(data);cacheAndRender();setSync('Общая база • сохранено','ok')
+    }
+    async function saveOne(item){
+      setSync('Сохранение…');
+      const {error}=await db.from('norms').upsert(toDb(item));
+      if(error){setSync('Не сохранено','bad');alert('Не удалось сохранить изменение: '+error.message);await loadCloudData();return false}
+      cachedData=structuredClone(data);cacheAndRender();setSync('Общая база • сохранено','ok');return true
+    }
+    async function replaceCloud(nextData){
+      setSync('Сохранение…');
+      const normalized=nextData.map(normalize);
+      const {error:upsertError}=await db.from('norms').upsert(normalized.map(toDb));
+      if(upsertError)throw upsertError;
+      const ids=normalized.map(x=>x.id);
+      const {error:deleteError}=await db.from('norms').delete().not('id','in',`(${ids.join(',')})`);
+      if(deleteError)throw deleteError;
+      data=normalized;cachedData=structuredClone(data);cacheAndRender();setSync('Общая база • сохранено','ok')
+    }
     function status(x){const cap=x.qty*x.avg,fill=x.normCapital?cap/x.normCapital:0;if(x.qty===0&&cap===0)return['Нет факта','warn'];if(fill>1.15)return['Перегруз','bad'];if(fill<.6)return['Недогруз','warn'];return['В норме','ok']}
     function fillCategories(selectId,excludeObligations=false){
       const el=$(selectId),prev=el.value;
@@ -267,13 +321,14 @@
       [['category','fCategory'],['name','fName'],['type','fType'],['normQty','fNormQty'],['normCapital','fNormCapital'],['qty','fQty'],['avg','fAvg'],['market','fMarket'],['sales','fSales'],['minMargin','fMargin']].forEach(([k,e])=>$(e).value=x[k]??'');
       $('modalTitle').textContent=id?'Редактировать норматив':'Новый норматив';$('deleteBtn').classList.toggle('hidden',!id);$('modal').classList.remove('hidden')
     }
-    function quickBuy(id){
+    async function quickBuy(id){
       const x=data.find(v=>v.id===id),q=+prompt('Сколько штук закупаем?',1);if(!q||q<0)return;
       const p=+prompt('Цена входа за 1 шт., ₽',x.avg||0);if(!p||p<0)return;
-      const old=x.qty*x.avg,newQ=x.qty+q;x.avg=(old+q*p)/newQ;x.qty=newQ;save();alert('Новая средняя себестоимость: '+money(x.avg))
+      const old=x.qty*x.avg,newQ=x.qty+q,oldQty=x.qty,oldAvg=x.avg;x.avg=(old+q*p)/newQ;x.qty=newQ;
+      if(await saveOne(x))alert('Новая средняя себестоимость: '+money(x.avg));else{x.qty=oldQty;x.avg=oldAvg}
     }
     function exportBackup(){
-      const payload={schema:BACKUP_SCHEMA,version:1,appVersion:'0.3',exportedAt:new Date().toISOString(),data};
+      const payload={schema:BACKUP_SCHEMA,version:1,appVersion:'0.4',exportedAt:new Date().toISOString(),data};
       const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
       a.href=url;a.download=`uralstore-norms-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)
     }
@@ -283,8 +338,21 @@
         if(parsed.schema!==BACKUP_SCHEMA||parsed.version!==1||!Array.isArray(parsed.data))throw new Error('Неверный формат резервной копии');
         if(!parsed.data.every(x=>x&&typeof x==='object'&&'name'in x&&'category'in x))throw new Error('В копии отсутствуют обязательные поля');
         if(!confirm(`Заменить текущие данные данными из копии? Позиций в копии: ${parsed.data.length}`))return;
-        data=parsed.data.map(normalize);save();alert('Резервная копия восстановлена')
+        await replaceCloud(parsed.data);alert('Резервная копия восстановлена в общей базе')
       }catch(error){alert('Не удалось импортировать копию: '+error.message)}finally{$('importFile').value=''}
+    }
+
+    async function startApp(){
+      try{
+        await loadCloudData();
+        $('authScreen').classList.add('hidden');
+        if(realtimeChannel)await db.removeChannel(realtimeChannel);
+        realtimeChannel=db.channel('norms-shared').on('postgres_changes',{event:'*',schema:'public',table:'norms'},()=>{
+          clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>loadCloudData().catch(()=>{}),250)
+        }).subscribe()
+      }catch(error){
+        $('authScreen').classList.remove('hidden');$('authError').textContent='Не удалось открыть общую базу: '+error.message
+      }
     }
 
     document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{
@@ -293,16 +361,24 @@
       $('normsView').classList.toggle('hidden',analytics);$('analyticsView').classList.toggle('hidden',!analytics);$('addBtn').classList.toggle('hidden',analytics)
     });
     $('addBtn').onclick=()=>openEdit();$('closeBtn').onclick=()=>$('modal').classList.add('hidden');
-    $('saveBtn').onclick=()=>{
+    $('saveBtn').onclick=async()=>{
       const o=normalize({id:editing||Date.now(),category:$('fCategory').value||'Без категории',name:$('fName').value||'Без названия',type:$('fType').value,normQty:$('fNormQty').value,normCapital:$('fNormCapital').value,qty:$('fQty').value,avg:$('fAvg').value,market:$('fMarket').value,sales:$('fSales').value,minMargin:$('fMargin').value});
-      if(editing)data=data.map(x=>x.id===editing?o:x);else data.push(o);save();$('modal').classList.add('hidden')
+      const previous=structuredClone(data);if(editing)data=data.map(x=>x.id===editing?o:x);else data.push(o);
+      if(await saveOne(o))$('modal').classList.add('hidden');else data=previous
     };
-    $('deleteBtn').onclick=()=>{if(editing&&confirm('Удалить норматив?')){data=data.filter(x=>x.id!==editing);save();$('modal').classList.add('hidden')}};
+    $('deleteBtn').onclick=async()=>{if(editing&&confirm('Удалить норматив из общей базы?')){setSync('Удаление…');const {error}=await db.from('norms').delete().eq('id',editing);if(error){setSync('Не удалено','bad');alert(error.message);return}data=data.filter(x=>x.id!==editing);cachedData=structuredClone(data);cacheAndRender();setSync('Общая база • сохранено','ok');$('modal').classList.add('hidden')}};
     $('search').oninput=renderNorms;$('categoryFilter').onchange=renderNorms;$('typeFilter').onchange=renderNorms;
     $('analyticsSearch').oninput=renderAnalytics;$('analyticsCategory').onchange=renderAnalytics;$('analyticsSort').onchange=renderAnalytics;
-    $('resetDemo').onclick=()=>{if(confirm('Вернуть нормативы v0.2? Текущие данные на этом устройстве будут заменены. Сначала рекомендуется экспортировать резервную копию.')){data=structuredClone(defaults);save()}};
+    $('resetDemo').onclick=async()=>{if(confirm('Вернуть нормативы v0.2 в общей базе? Текущие общие данные будут заменены. Сначала рекомендуется экспортировать резервную копию.')){try{await replaceCloud(structuredClone(defaults))}catch(error){setSync('Не сохранено','bad');alert(error.message)}}};
     $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('importFile').click();$('importFile').onchange=e=>e.target.files[0]&&importBackup(e.target.files[0]);
-    renderAll();
+    $('authForm').onsubmit=async event=>{
+      event.preventDefault();$('authError').textContent='';$('loginBtn').disabled=true;$('loginBtn').textContent='Вход…';
+      const {error}=await db.auth.signInWithPassword({email:TEAM_EMAIL,password:$('teamCode').value});
+      if(error){$('authError').textContent='Неверный код команды';$('loginBtn').disabled=false;$('loginBtn').textContent='Войти';return}
+      $('teamCode').value='';$('loginBtn').disabled=false;$('loginBtn').textContent='Войти';await startApp()
+    };
+    $('logoutBtn').onclick=async()=>{if(realtimeChannel)await db.removeChannel(realtimeChannel);await db.auth.signOut();$('authScreen').classList.remove('hidden');$('authError').textContent='';setSync('Нет подключения')};
+    (async()=>{const {data:{session}}=await db.auth.getSession();if(session)await startApp();else{$('authScreen').classList.remove('hidden');setSync('Требуется вход')}})();
   </script>
 </body>
 </html>
