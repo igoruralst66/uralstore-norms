@@ -1,1 +1,308 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><title>URALSTORE — Нормативы</title><style>:root{--bg:#f5f5f7;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#111827}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:var(--bg);color:var(--text)}.wrap{max-width:1180px;margin:auto;padding:16px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}h1{font-size:24px;margin:0}.sub,.note{font-size:12px;color:var(--muted)}button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 13px;min-height:42px;font-size:15px}.primary{background:var(--accent);color:#fff}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.card,.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.panel{margin-bottom:14px}.card b{display:block;font-size:21px;margin-top:4px}.filters,.formgrid{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px}.formgrid{grid-template-columns:repeat(3,1fr)}input,select{width:100%;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:9px;font-size:16px;background:#fff}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1050px}th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted);position:sticky;top:0;background:#fff}.tag{padding:4px 8px;border-radius:999px;background:#eef2f7;font-size:12px}.warn{color:#92400e}.bad{color:#991b1b}.ok{color:#166534}.hidden{display:none!important}label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}@media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}.filters,.formgrid{grid-template-columns:1fr}.wrap{padding:12px}h1{font-size:21px}}</style></head><body><div class="wrap"><div class="top"><div><h1>URALSTORE — нормативы и закупка</h1><div class="sub">v0.2 • актуальные нормативы после созвона • данные сохраняются на этом устройстве</div></div><button class="primary" id="addBtn">+ Добавить норматив</button></div><div class="grid"><div class="card"><span class="note">Норматив капитала</span><b id="mNorm">—</b></div><div class="card"><span class="note">Текущий капитал</span><b id="mCurrent">—</b></div><div class="card"><span class="note">Отклонение</span><b id="mGap">—</b></div><div class="card"><span class="note">Позиций</span><b id="mCount">—</b></div></div><div class="panel"><div class="filters"><input id="search" placeholder="Поиск позиции"><select id="categoryFilter"><option value="">Все категории</option></select><select id="typeFilter"><option value="">Все типы</option><option value="sku">SKU</option><option value="group">Группа</option></select><button id="resetDemo">Вернуть нормативы v0.2</button></div></div><div class="panel tablewrap"><table><thead><tr><th>Категория</th><th>Позиция</th><th>Тип</th><th>Норматив</th><th>Есть</th><th>Ср. себест.</th><th>Рынок</th><th>Капитал</th><th>Отклонение</th><th>Статус</th><th></th></tr></thead><tbody id="rows"></tbody></table></div><div class="panel"><b>Принцип</b><p class="note">Норматив — целевая загрузка капитала, а не требование любой ценой держать полный остаток. Количество не задано там, где на созвоне был зафиксирован только лимит капитала.</p></div></div><div id="modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.35);padding:16px;overflow:auto"><div style="max-width:720px;margin:30px auto;background:#fff;border-radius:16px;padding:16px"><div class="top"><b id="modalTitle">Новый норматив</b><button id="closeBtn">Закрыть</button></div><div class="formgrid"><div><label>Категория</label><input id="fCategory"></div><div><label>Название</label><input id="fName"></div><div><label>Тип</label><select id="fType"><option value="sku">SKU</option><option value="group">Группа</option></select></div><div><label>Норматив, шт.</label><input id="fNormQty" type="number"></div><div><label>Норматив капитала, ₽</label><input id="fNormCapital" type="number"></div><div><label>Текущий остаток, шт.</label><input id="fQty" type="number"></div><div><label>Средняя себестоимость, ₽</label><input id="fAvg" type="number"></div><div><label>Рыночная цена, ₽</label><input id="fMarket" type="number"></div><div><label>Продажи, шт./мес.</label><input id="fSales" type="number" step="0.1"></div><div><label>Мин. маржа, %</label><input id="fMargin" type="number" step="0.1" value="3"></div></div><div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px"><button id="deleteBtn" class="hidden">Удалить</button><button id="saveBtn" class="primary">Сохранить</button></div></div></div><script>const KEY='uralstore_norms_v02';const defaults=[{id:1,category:'iPhone новые',name:'iPhone 17 Pro Max 256 GB eSIM',type:'sku',normQty:3,normCapital:310000},{id:2,category:'iPhone новые',name:'iPhone 17 Pro 256 GB eSIM',type:'sku',normQty:3,normCapital:285000},{id:3,category:'iPhone новые',name:'iPhone AIR 256 GB',type:'sku',normQty:4,normCapital:274000},{id:4,category:'iPhone новые',name:'iPhone 17 256 GB 1SIM/eSIM',type:'sku',normQty:4,normCapital:288000},{id:5,category:'iPhone новые',name:'iPhone 17e 128 GB',type:'sku',normQty:1,normCapital:60000},{id:6,category:'iPhone новые',name:'iPhone 16 Pro 256/512/1TB',type:'group',normQty:3,normCapital:235000},{id:7,category:'iPhone новые',name:'iPhone 16 Pro Max любая память',type:'group',normQty:2,normCapital:200000},{id:8,category:'iPhone новые',name:'iPhone 16 256/512 GB',type:'group',normQty:0,normCapital:60000},{id:9,category:'Аудио',name:'EarPods UCB C',type:'sku',normQty:10,normCapital:20000},{id:10,category:'Аудио',name:'AirPods Pro 2 / Pro 3',type:'group',normQty:6,normCapital:88000},{id:11,category:'Аудио',name:'AirPods 4 Series',type:'sku',normQty:3,normCapital:22000},{id:12,category:'Аудио',name:'AirPods 4 ANC',type:'sku',normQty:3,normCapital:40000},{id:13,category:'Аудио',name:'AirPods Max 2 нейтральный цвет',type:'group',normQty:0,normCapital:40000},{id:14,category:'Apple Watch',name:'Apple Watch б/у',type:'group',normQty:0,normCapital:150000},{id:15,category:'Apple Watch',name:'Apple Watch новые — актуальная модель',type:'group',normQty:6,normCapital:200000},{id:16,category:'iPad',name:'Актуальная модель',type:'group',normQty:3,normCapital:150000},{id:17,category:'MacBook',name:'Актуальная модель',type:'group',normQty:4,normCapital:400000},{id:18,category:'Sony',name:'PS5 Slim',type:'sku',normQty:2,normCapital:130000},{id:19,category:'Sony',name:'PS5 Digital',type:'sku',normQty:2,normCapital:120000},{id:20,category:'Sony',name:'PS5 Pro',type:'sku',normQty:0,normCapital:100000},{id:21,category:'Sony',name:'DualSense',type:'sku',normQty:6,normCapital:40000},{id:22,category:'Dyson + Samsung',name:'Актуальные модели',type:'group',normQty:0,normCapital:800000},{id:23,category:'iPhone A/A+',name:'17 line',type:'group',normQty:0,normCapital:700000},{id:24,category:'iPhone A/A+',name:'16 line',type:'group',normQty:0,normCapital:600000},{id:25,category:'iPhone A/A+',name:'15 line',type:'group',normQty:0,normCapital:500000},{id:26,category:'iPhone A/A+',name:'14 line',type:'group',normQty:0,normCapital:350000},{id:27,category:'iPhone A/A+',name:'13 line',type:'group',normQty:0,normCapital:250000},{id:28,category:'iPhone A/A+',name:'12 line',type:'group',normQty:0,normCapital:100000},{id:29,category:'iPhone A/A+',name:'11 line',type:'group',normQty:0,normCapital:50000},{id:30,category:'Обязательства',name:'Обязательства — лимит',type:'group',normQty:0,normCapital:200000}].map(x=>({...x,qty:0,avg:0,market:0,sales:0,minMargin:3}));let data=JSON.parse(localStorage.getItem(KEY)||'null')||structuredClone(defaults),editing=null;const $=id=>document.getElementById(id),money=v=>new Intl.NumberFormat('ru-RU').format(Math.round(v||0))+' ₽';function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}function status(x){const cap=x.qty*x.avg,fill=x.normCapital?cap/x.normCapital:0;if(x.qty===0&&cap===0)return['Нет факта','warn'];if(fill>1.15)return['Перегруз','bad'];if(fill<.6)return['Недогруз','warn'];return['В норме','ok']}function render(){const q=$('search').value.toLowerCase(),cf=$('categoryFilter').value,tf=$('typeFilter').value;const cats=[...new Set(data.map(x=>x.category))].sort(),prev=$('categoryFilter').value;$('categoryFilter').innerHTML='<option value="">Все категории</option>'+cats.map(c=>`<option ${c===prev?'selected':''}>${c}</option>`).join('');const list=data.filter(x=>(!q||(x.name+' '+x.category).toLowerCase().includes(q))&&(!cf||x.category===cf)&&(!tf||x.type===tf));$('rows').innerHTML=list.map(x=>{const cap=x.qty*x.avg,gap=cap-x.normCapital,st=status(x);return `<tr><td>${x.category}</td><td><b>${x.name}</b></td><td><span class="tag">${x.type==='sku'?'SKU':'Группа'}</span></td><td>${x.normQty?x.normQty+' шт. • ':''}${money(x.normCapital)}</td><td>${x.qty}</td><td>${money(x.avg)}</td><td>${money(x.market)}</td><td>${money(cap)}</td><td class="${gap>0?'bad':gap<0?'warn':'ok'}">${gap>0?'+':''}${money(gap)}</td><td class="${st[1]}">${st[0]}</td><td><button data-edit="${x.id}">Изм.</button> <button data-buy="${x.id}">Закупка</button></td></tr>`}).join('');const norm=data.reduce((s,x)=>s+x.normCapital,0),cur=data.reduce((s,x)=>s+x.qty*x.avg,0);$('mNorm').textContent=money(norm);$('mCurrent').textContent=money(cur);$('mGap').textContent=(cur-norm>0?'+':'')+money(cur-norm);$('mCount').textContent=data.length;document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(+b.dataset.edit));document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>quickBuy(+b.dataset.buy))}function openEdit(id=null){editing=id;const x=id?data.find(v=>v.id===id):{category:'',name:'',type:'sku',normQty:0,normCapital:0,qty:0,avg:0,market:0,sales:0,minMargin:3};[['category','fCategory'],['name','fName'],['type','fType'],['normQty','fNormQty'],['normCapital','fNormCapital'],['qty','fQty'],['avg','fAvg'],['market','fMarket'],['sales','fSales'],['minMargin','fMargin']].forEach(([k,e])=>$(e).value=x[k]??'');$('modalTitle').textContent=id?'Редактировать норматив':'Новый норматив';$('deleteBtn').classList.toggle('hidden',!id);$('modal').classList.remove('hidden')}function quickBuy(id){const x=data.find(v=>v.id===id),q=+prompt('Сколько штук закупаем?',1);if(!q)return;const p=+prompt('Цена входа за 1 шт., ₽',x.avg||0);if(!p)return;const old=x.qty*x.avg,newQ=x.qty+q;x.avg=(old+q*p)/newQ;x.qty=newQ;save();alert('Новая средняя себестоимость: '+money(x.avg))}$('addBtn').onclick=()=>openEdit();$('closeBtn').onclick=()=>$('modal').classList.add('hidden');$('saveBtn').onclick=()=>{const o={id:editing||Date.now(),category:$('fCategory').value||'Без категории',name:$('fName').value||'Без названия',type:$('fType').value,normQty:+$('fNormQty').value||0,normCapital:+$('fNormCapital').value||0,qty:+$('fQty').value||0,avg:+$('fAvg').value||0,market:+$('fMarket').value||0,sales:+$('fSales').value||0,minMargin:+$('fMargin').value||0};if(editing)data=data.map(x=>x.id===editing?o:x);else data.push(o);save();$('modal').classList.add('hidden')};$('deleteBtn').onclick=()=>{if(editing&&confirm('Удалить норматив?')){data=data.filter(x=>x.id!==editing);save();$('modal').classList.add('hidden')}};$('search').oninput=render;$('categoryFilter').onchange=render;$('typeFilter').onchange=render;$('resetDemo').onclick=()=>{if(confirm('Вернуть нормативы v0.2? Текущие данные на этом устройстве будут заменены.')){data=structuredClone(defaults);save()}};render();</script></body></html>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>URALSTORE — Нормативы и аналитика</title>
+  <style>
+    :root{--bg:#f5f5f7;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#111827;--soft:#eef2f7;--good:#166534;--warn:#92400e;--bad:#991b1b}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1180px;margin:auto;padding:16px}
+    .top,.actions,.section-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+    .top{margin-bottom:14px}
+    h1{font-size:24px;margin:0}
+    h2{font-size:18px;margin:0}
+    .sub,.note{font-size:12px;color:var(--muted)}
+    button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 13px;min-height:42px;font-size:15px;cursor:pointer}
+    button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #64748b;outline-offset:2px}
+    .primary{background:var(--accent);color:#fff}
+    .tabs{display:inline-grid;grid-template-columns:1fr 1fr;background:#e9eaed;border-radius:12px;padding:3px;margin-bottom:14px}
+    .tab{border:0;background:transparent;min-height:38px;padding:8px 18px;color:var(--muted)}
+    .tab.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(17,24,39,.08)}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+    .card,.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+    .panel{margin-bottom:14px}
+    .card b{display:block;font-size:21px;margin-top:4px}
+    .card .detail{display:block;font-size:11px;color:var(--muted);margin-top:5px;line-height:1.35}
+    .filters,.formgrid{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px}
+    .formgrid{grid-template-columns:repeat(3,1fr)}
+    input,select{width:100%;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:9px;font-size:16px;background:#fff}
+    .tablewrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;min-width:1050px}
+    th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:middle}
+    th{color:var(--muted);position:sticky;top:0;background:#fff;white-space:nowrap}
+    th.sortable{cursor:pointer;user-select:none}
+    .num{text-align:right;white-space:nowrap}
+    .tag{padding:4px 8px;border-radius:999px;background:var(--soft);font-size:12px;white-space:nowrap}
+    .warn{color:var(--warn)}.bad{color:var(--bad)}.ok{color:var(--good)}
+    .hidden{display:none!important}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+    .explain{line-height:1.5;margin:0}
+    .analytics-mobile{display:none}
+    .position-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+    .position-card h3{font-size:15px;margin:0 0 3px}
+    .position-values{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:13px}
+    .position-values span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+    .position-values b{font-size:14px}
+    .sort-marker{font-size:10px;margin-left:3px}
+    @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.filters,.formgrid{grid-template-columns:1fr 1fr}.wrap{padding:12px}}
+    @media(max-width:700px){.filters,.formgrid{grid-template-columns:1fr}.analytics-table{display:none}.analytics-mobile{display:block}.actions{width:100%}.actions button{flex:1}.tabs{display:grid;width:100%}h1{font-size:21px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>URALSTORE — нормативы и закупка</h1>
+        <div class="sub">v0.3 • аналитика текущего остатка • данные сохраняются на этом устройстве</div>
+      </div>
+      <div class="actions">
+        <button id="exportBtn">Экспорт копии</button>
+        <button id="importBtn">Импорт копии</button>
+        <input id="importFile" class="hidden" type="file" accept="application/json,.json">
+        <button class="primary" id="addBtn">+ Добавить норматив</button>
+      </div>
+    </div>
+
+    <nav class="tabs" aria-label="Разделы приложения">
+      <button class="tab active" data-view="norms">Нормативы</button>
+      <button class="tab" data-view="analytics">Аналитика</button>
+    </nav>
+
+    <main id="normsView">
+      <div class="grid">
+        <div class="card"><span class="note">Норматив капитала</span><b id="mNorm">—</b></div>
+        <div class="card"><span class="note">Текущий капитал</span><b id="mCurrent">—</b></div>
+        <div class="card"><span class="note">Отклонение</span><b id="mGap">—</b></div>
+        <div class="card"><span class="note">Позиций</span><b id="mCount">—</b></div>
+      </div>
+      <div class="panel">
+        <div class="filters">
+          <input id="search" placeholder="Поиск позиции">
+          <select id="categoryFilter"><option value="">Все категории</option></select>
+          <select id="typeFilter"><option value="">Все типы</option><option value="sku">SKU</option><option value="group">Группа</option></select>
+          <button id="resetDemo">Вернуть нормативы v0.2</button>
+        </div>
+      </div>
+      <div class="panel tablewrap">
+        <table>
+          <thead><tr><th>Категория</th><th>Позиция</th><th>Тип</th><th>Норматив</th><th>Есть</th><th>Ср. себест.</th><th>Рынок</th><th>Капитал</th><th>Отклонение</th><th>Статус</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="panel"><b>Принцип</b><p class="note explain">Норматив — целевая загрузка капитала, а не требование любой ценой держать полный остаток. Количество не задано там, где на созвоне был зафиксирован только лимит капитала.</p></div>
+    </main>
+
+    <main id="analyticsView" class="hidden">
+      <div class="grid">
+        <div class="card"><span class="note">Капитал в товаре</span><b id="aCapital">—</b><span class="detail">Текущий остаток × средняя себестоимость</span></div>
+        <div class="card"><span class="note">Потенциальная выручка</span><b id="aRevenue">—</b><span class="detail" id="aCoverageRevenue">По позициям с указанной рыночной ценой</span></div>
+        <div class="card"><span class="note">Потенциальная валовая прибыль</span><b id="aProfit">—</b><span class="detail">До операционных расходов и фактической реализации</span></div>
+        <div class="card"><span class="note">Средняя потенциальная маржа</span><b id="aMargin">—</b><span class="detail">Взвешена по капиталу оценённых позиций</span></div>
+      </div>
+      <div class="panel"><p class="note explain">Расчёты показывают потенциальный валовый результат текущего остатка при указанных рыночных ценах. Это не фактически полученная и не чистая прибыль. Обязательства исключены из товарной аналитики.</p></div>
+      <div class="panel">
+        <div class="filters" style="grid-template-columns:2fr 1fr 1fr">
+          <input id="analyticsSearch" placeholder="Поиск позиции">
+          <select id="analyticsCategory"><option value="">Все категории</option></select>
+          <select id="analyticsSort">
+            <option value="capital-desc">Сначала больший капитал</option>
+            <option value="profit-desc">Сначала большая прибыль</option>
+            <option value="profit-asc">Сначала меньшая прибыль</option>
+            <option value="margin-desc">Сначала большая маржа</option>
+            <option value="margin-asc">Сначала меньшая маржа</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel tablewrap analytics-table">
+        <table style="min-width:900px">
+          <thead><tr><th>Позиция</th><th class="num">Остаток</th><th class="num">Капитал</th><th class="num">Потенциальная выручка</th><th class="num">Потенциальная прибыль</th><th class="num">Маржа</th></tr></thead>
+          <tbody id="analyticsRows"></tbody>
+        </table>
+      </div>
+      <div id="analyticsCards" class="analytics-mobile"></div>
+    </main>
+  </div>
+
+  <div id="modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.35);padding:16px;overflow:auto">
+    <div style="max-width:720px;margin:30px auto;background:#fff;border-radius:16px;padding:16px">
+      <div class="top"><b id="modalTitle">Новый норматив</b><button id="closeBtn">Закрыть</button></div>
+      <div class="formgrid">
+        <div><label>Категория</label><input id="fCategory"></div>
+        <div><label>Название</label><input id="fName"></div>
+        <div><label>Тип</label><select id="fType"><option value="sku">SKU</option><option value="group">Группа</option></select></div>
+        <div><label>Норматив, шт.</label><input id="fNormQty" type="number"></div>
+        <div><label>Норматив капитала, ₽</label><input id="fNormCapital" type="number"></div>
+        <div><label>Текущий остаток, шт.</label><input id="fQty" type="number"></div>
+        <div><label>Средняя себестоимость, ₽</label><input id="fAvg" type="number"></div>
+        <div><label>Рыночная цена, ₽</label><input id="fMarket" type="number"></div>
+        <div><label>Продажи, шт./мес.</label><input id="fSales" type="number" step="0.1"></div>
+        <div><label>Мин. маржа, %</label><input id="fMargin" type="number" step="0.1" value="3"></div>
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px"><button id="deleteBtn" class="hidden">Удалить</button><button id="saveBtn" class="primary">Сохранить</button></div>
+    </div>
+  </div>
+
+  <script>
+    const KEY='uralstore_norms_v02';
+    const BACKUP_SCHEMA='uralstore-norms-backup';
+    const defaults=[
+      {id:1,category:'iPhone новые',name:'iPhone 17 Pro Max 256 GB eSIM',type:'sku',normQty:3,normCapital:310000},
+      {id:2,category:'iPhone новые',name:'iPhone 17 Pro 256 GB eSIM',type:'sku',normQty:3,normCapital:285000},
+      {id:3,category:'iPhone новые',name:'iPhone AIR 256 GB',type:'sku',normQty:4,normCapital:274000},
+      {id:4,category:'iPhone новые',name:'iPhone 17 256 GB 1SIM/eSIM',type:'sku',normQty:4,normCapital:288000},
+      {id:5,category:'iPhone новые',name:'iPhone 17e 128 GB',type:'sku',normQty:1,normCapital:60000},
+      {id:6,category:'iPhone новые',name:'iPhone 16 Pro 256/512/1TB',type:'group',normQty:3,normCapital:235000},
+      {id:7,category:'iPhone новые',name:'iPhone 16 Pro Max любая память',type:'group',normQty:2,normCapital:200000},
+      {id:8,category:'iPhone новые',name:'iPhone 16 256/512 GB',type:'group',normQty:0,normCapital:60000},
+      {id:9,category:'Аудио',name:'EarPods UCB C',type:'sku',normQty:10,normCapital:20000},
+      {id:10,category:'Аудио',name:'AirPods Pro 2 / Pro 3',type:'group',normQty:6,normCapital:88000},
+      {id:11,category:'Аудио',name:'AirPods 4 Series',type:'sku',normQty:3,normCapital:22000},
+      {id:12,category:'Аудио',name:'AirPods 4 ANC',type:'sku',normQty:3,normCapital:40000},
+      {id:13,category:'Аудио',name:'AirPods Max 2 нейтральный цвет',type:'group',normQty:0,normCapital:40000},
+      {id:14,category:'Apple Watch',name:'Apple Watch б/у',type:'group',normQty:0,normCapital:150000},
+      {id:15,category:'Apple Watch',name:'Apple Watch новые — актуальная модель',type:'group',normQty:6,normCapital:200000},
+      {id:16,category:'iPad',name:'Актуальная модель',type:'group',normQty:3,normCapital:150000},
+      {id:17,category:'MacBook',name:'Актуальная модель',type:'group',normQty:4,normCapital:400000},
+      {id:18,category:'Sony',name:'PS5 Slim',type:'sku',normQty:2,normCapital:130000},
+      {id:19,category:'Sony',name:'PS5 Digital',type:'sku',normQty:2,normCapital:120000},
+      {id:20,category:'Sony',name:'PS5 Pro',type:'sku',normQty:0,normCapital:100000},
+      {id:21,category:'Sony',name:'DualSense',type:'sku',normQty:6,normCapital:40000},
+      {id:22,category:'Dyson + Samsung',name:'Актуальные модели',type:'group',normQty:0,normCapital:800000},
+      {id:23,category:'iPhone A/A+',name:'17 line',type:'group',normQty:0,normCapital:700000},
+      {id:24,category:'iPhone A/A+',name:'16 line',type:'group',normQty:0,normCapital:600000},
+      {id:25,category:'iPhone A/A+',name:'15 line',type:'group',normQty:0,normCapital:500000},
+      {id:26,category:'iPhone A/A+',name:'14 line',type:'group',normQty:0,normCapital:350000},
+      {id:27,category:'iPhone A/A+',name:'13 line',type:'group',normQty:0,normCapital:250000},
+      {id:28,category:'iPhone A/A+',name:'12 line',type:'group',normQty:0,normCapital:100000},
+      {id:29,category:'iPhone A/A+',name:'11 line',type:'group',normQty:0,normCapital:50000},
+      {id:30,category:'Обязательства',name:'Обязательства — лимит',type:'group',normQty:0,normCapital:200000}
+    ].map(x=>({...x,qty:0,avg:0,market:0,sales:0,minMargin:3}));
+
+    const $=id=>document.getElementById(id);
+    const money=v=>new Intl.NumberFormat('ru-RU').format(Math.round(Number(v)||0))+' ₽';
+    const percent=v=>Number.isFinite(v)?new Intl.NumberFormat('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:2}).format(v)+'%':'—';
+    const numericKeys=['normQty','normCapital','qty','avg','market','sales','minMargin'];
+    const normalize=x=>{
+      const out={...x};
+      numericKeys.forEach(k=>out[k]=Number(out[k])||0);
+      out.id=Number(out.id)||Date.now()+Math.random();
+      out.category=String(out.category||'Без категории');
+      out.name=String(out.name||'Без названия');
+      out.type=out.type==='sku'?'sku':'group';
+      return out;
+    };
+    let data;
+    try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');data=Array.isArray(stored)?stored.map(normalize):structuredClone(defaults)}catch{data=structuredClone(defaults)}
+    let editing=null;
+
+    function save(){localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
+    function status(x){const cap=x.qty*x.avg,fill=x.normCapital?cap/x.normCapital:0;if(x.qty===0&&cap===0)return['Нет факта','warn'];if(fill>1.15)return['Перегруз','bad'];if(fill<.6)return['Недогруз','warn'];return['В норме','ok']}
+    function fillCategories(selectId,excludeObligations=false){
+      const el=$(selectId),prev=el.value;
+      const cats=[...new Set(data.filter(x=>!excludeObligations||x.category!=='Обязательства').map(x=>x.category))].sort();
+      el.innerHTML='<option value="">Все категории</option>'+cats.map(c=>`<option ${c===prev?'selected':''}>${escapeHtml(c)}</option>`).join('');
+    }
+    function escapeHtml(value){return String(value).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
+
+    function renderNorms(){
+      fillCategories('categoryFilter');
+      const q=$('search').value.toLowerCase(),cf=$('categoryFilter').value,tf=$('typeFilter').value;
+      const list=data.filter(x=>(!q||(x.name+' '+x.category).toLowerCase().includes(q))&&(!cf||x.category===cf)&&(!tf||x.type===tf));
+      $('rows').innerHTML=list.map(x=>{
+        const cap=x.qty*x.avg,gap=cap-x.normCapital,st=status(x);
+        return `<tr><td>${escapeHtml(x.category)}</td><td><b>${escapeHtml(x.name)}</b></td><td><span class="tag">${x.type==='sku'?'SKU':'Группа'}</span></td><td>${x.normQty?x.normQty+' шт. • ':''}${money(x.normCapital)}</td><td>${x.qty}</td><td>${money(x.avg)}</td><td>${money(x.market)}</td><td>${money(cap)}</td><td class="${gap>0?'bad':gap<0?'warn':'ok'}">${gap>0?'+':''}${money(gap)}</td><td class="${st[1]}">${st[0]}</td><td><button data-edit="${x.id}">Изм.</button> <button data-buy="${x.id}">Закупка</button></td></tr>`
+      }).join('');
+      const norm=data.reduce((s,x)=>s+x.normCapital,0),cur=data.reduce((s,x)=>s+x.qty*x.avg,0);
+      $('mNorm').textContent=money(norm);$('mCurrent').textContent=money(cur);$('mGap').textContent=(cur-norm>0?'+':'')+money(cur-norm);$('mCount').textContent=data.length;
+      document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(+b.dataset.edit));
+      document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>quickBuy(+b.dataset.buy));
+    }
+
+    function analyticsValues(x){
+      const hasStock=x.qty>0,hasCost=hasStock&&x.avg>0,hasMarket=hasCost&&x.market>0;
+      const capital=hasCost?x.qty*x.avg:null;
+      const revenue=hasMarket?x.qty*x.market:null;
+      const profit=hasMarket?revenue-capital:null;
+      const margin=hasMarket?profit/capital*100:null;
+      return{hasStock,hasCost,hasMarket,capital,revenue,profit,margin};
+    }
+    function renderAnalytics(){
+      fillCategories('analyticsCategory',true);
+      const products=data.filter(x=>x.category!=='Обязательства');
+      const stocked=products.filter(x=>x.qty>0);
+      const assessed=stocked.filter(x=>analyticsValues(x).hasMarket);
+      const capital=products.reduce((s,x)=>s+(analyticsValues(x).capital||0),0);
+      const assessedCapital=assessed.reduce((s,x)=>s+analyticsValues(x).capital,0);
+      const revenue=assessed.reduce((s,x)=>s+analyticsValues(x).revenue,0);
+      const profit=assessed.reduce((s,x)=>s+analyticsValues(x).profit,0);
+      const margin=assessedCapital?profit/assessedCapital*100:NaN;
+      $('aCapital').textContent=money(capital);$('aRevenue').textContent=money(revenue);$('aProfit').textContent=money(profit);$('aProfit').className=profit<0?'bad':profit>0?'ok':'';$('aMargin').textContent=percent(margin);
+      $('aCoverageRevenue').textContent=stocked.length?`Рыночная оценка: ${assessed.length} из ${stocked.length} позиций с остатком`:'Пока нет позиций с остатком';
+
+      const q=$('analyticsSearch').value.toLowerCase(),cf=$('analyticsCategory').value,sort=$('analyticsSort').value;
+      const list=products.filter(x=>(!q||(x.name+' '+x.category).toLowerCase().includes(q))&&(!cf||x.category===cf));
+      list.sort((a,b)=>{
+        const av=analyticsValues(a),bv=analyticsValues(b),dir=sort.endsWith('asc')?1:-1,key=sort.split('-')[0];
+        const an=av[key]??(dir===1?Infinity:-Infinity),bn=bv[key]??(dir===1?Infinity:-Infinity);
+        return (an-bn)*dir;
+      });
+      const rows=list.map(x=>{
+        const v=analyticsValues(x),profitClass=v.profit<0?'bad':v.profit>0?'ok':'';
+        const missing=v.hasStock&&!v.hasCost?'Нет себестоимости':v.hasCost&&!v.hasMarket?'Нет рыночной цены':'';
+        return `<tr><td><b>${escapeHtml(x.name)}</b><div class="note">${escapeHtml(x.category)}${missing?' • '+missing:''}</div></td><td class="num">${x.qty}</td><td class="num">${v.capital===null?'—':money(v.capital)}</td><td class="num">${v.revenue===null?'—':money(v.revenue)}</td><td class="num ${profitClass}">${v.profit===null?'—':money(v.profit)}</td><td class="num ${profitClass}">${v.hasStock?percent(v.margin):'—'}</td></tr>`
+      }).join('');
+      $('analyticsRows').innerHTML=rows;
+      $('analyticsCards').innerHTML=list.map(x=>{
+        const v=analyticsValues(x),profitClass=v.profit<0?'bad':v.profit>0?'ok':'';
+        return `<article class="position-card"><h3>${escapeHtml(x.name)}</h3><div class="note">${escapeHtml(x.category)} • остаток ${x.qty}</div><div class="position-values"><div><span>Капитал</span><b>${v.capital===null?'—':money(v.capital)}</b></div><div><span>Выручка</span><b>${v.revenue===null?'—':money(v.revenue)}</b></div><div><span>Потенц. прибыль</span><b class="${profitClass}">${v.profit===null?'—':money(v.profit)}</b></div><div><span>Маржа</span><b class="${profitClass}">${v.hasStock?percent(v.margin):'—'}</b></div></div></article>`
+      }).join('');
+    }
+    function renderAll(){renderNorms();renderAnalytics()}
+
+    function openEdit(id=null){
+      editing=id;const x=id?data.find(v=>v.id===id):{category:'',name:'',type:'sku',normQty:0,normCapital:0,qty:0,avg:0,market:0,sales:0,minMargin:3};
+      [['category','fCategory'],['name','fName'],['type','fType'],['normQty','fNormQty'],['normCapital','fNormCapital'],['qty','fQty'],['avg','fAvg'],['market','fMarket'],['sales','fSales'],['minMargin','fMargin']].forEach(([k,e])=>$(e).value=x[k]??'');
+      $('modalTitle').textContent=id?'Редактировать норматив':'Новый норматив';$('deleteBtn').classList.toggle('hidden',!id);$('modal').classList.remove('hidden')
+    }
+    function quickBuy(id){
+      const x=data.find(v=>v.id===id),q=+prompt('Сколько штук закупаем?',1);if(!q||q<0)return;
+      const p=+prompt('Цена входа за 1 шт., ₽',x.avg||0);if(!p||p<0)return;
+      const old=x.qty*x.avg,newQ=x.qty+q;x.avg=(old+q*p)/newQ;x.qty=newQ;save();alert('Новая средняя себестоимость: '+money(x.avg))
+    }
+    function exportBackup(){
+      const payload={schema:BACKUP_SCHEMA,version:1,appVersion:'0.3',exportedAt:new Date().toISOString(),data};
+      const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=`uralstore-norms-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)
+    }
+    async function importBackup(file){
+      try{
+        const parsed=JSON.parse(await file.text());
+        if(parsed.schema!==BACKUP_SCHEMA||parsed.version!==1||!Array.isArray(parsed.data))throw new Error('Неверный формат резервной копии');
+        if(!parsed.data.every(x=>x&&typeof x==='object'&&'name'in x&&'category'in x))throw new Error('В копии отсутствуют обязательные поля');
+        if(!confirm(`Заменить текущие данные данными из копии? Позиций в копии: ${parsed.data.length}`))return;
+        data=parsed.data.map(normalize);save();alert('Резервная копия восстановлена')
+      }catch(error){alert('Не удалось импортировать копию: '+error.message)}finally{$('importFile').value=''}
+    }
+
+    document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{
+      const analytics=btn.dataset.view==='analytics';
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===btn));
+      $('normsView').classList.toggle('hidden',analytics);$('analyticsView').classList.toggle('hidden',!analytics);$('addBtn').classList.toggle('hidden',analytics)
+    });
+    $('addBtn').onclick=()=>openEdit();$('closeBtn').onclick=()=>$('modal').classList.add('hidden');
+    $('saveBtn').onclick=()=>{
+      const o=normalize({id:editing||Date.now(),category:$('fCategory').value||'Без категории',name:$('fName').value||'Без названия',type:$('fType').value,normQty:$('fNormQty').value,normCapital:$('fNormCapital').value,qty:$('fQty').value,avg:$('fAvg').value,market:$('fMarket').value,sales:$('fSales').value,minMargin:$('fMargin').value});
+      if(editing)data=data.map(x=>x.id===editing?o:x);else data.push(o);save();$('modal').classList.add('hidden')
+    };
+    $('deleteBtn').onclick=()=>{if(editing&&confirm('Удалить норматив?')){data=data.filter(x=>x.id!==editing);save();$('modal').classList.add('hidden')}};
+    $('search').oninput=renderNorms;$('categoryFilter').onchange=renderNorms;$('typeFilter').onchange=renderNorms;
+    $('analyticsSearch').oninput=renderAnalytics;$('analyticsCategory').onchange=renderAnalytics;$('analyticsSort').onchange=renderAnalytics;
+    $('resetDemo').onclick=()=>{if(confirm('Вернуть нормативы v0.2? Текущие данные на этом устройстве будут заменены. Сначала рекомендуется экспортировать резервную копию.')){data=structuredClone(defaults);save()}};
+    $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('importFile').click();$('importFile').onchange=e=>e.target.files[0]&&importBackup(e.target.files[0]);
+    renderAll();
+  </script>
+</body>
+</html>
