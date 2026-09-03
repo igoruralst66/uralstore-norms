@@ -18,7 +18,7 @@
     button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 13px;min-height:42px;font-size:15px;cursor:pointer}
     button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #64748b;outline-offset:2px}
     .primary{background:var(--accent);color:#fff}
-    .tabs{display:inline-grid;grid-template-columns:1fr 1fr;background:#e9eaed;border-radius:12px;padding:3px;margin-bottom:14px}
+    .tabs{display:inline-grid;grid-template-columns:repeat(3,1fr);background:#e9eaed;border-radius:12px;padding:3px;margin-bottom:14px}
     .tab{border:0;background:transparent;min-height:38px;padding:8px 18px;color:var(--muted)}
     .tab.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(17,24,39,.08)}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
@@ -47,10 +47,25 @@
     .position-values span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
     .position-values b{font-size:14px}
     .sort-marker{font-size:10px;margin-left:3px}
+    .norm-groups{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+    .norm-group{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+    .norm-group.wide{grid-column:1/-1}
+    .norm-group-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}
+    .norm-group-head h2{font-size:17px}.norm-group-total{text-align:right;white-space:nowrap}
+    .norm-subgroups{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .norm-subgroup{border:1px solid var(--line);border-radius:12px;padding:10px}
+    .norm-subgroup-title{font-size:12px;color:var(--muted);margin:0 0 8px}
+    .norm-item{padding:11px 0;border-top:1px solid var(--line)}
+    .norm-item:first-of-type{border-top:0;padding-top:0}
+    .norm-item-title{font-size:14px;font-weight:650;line-height:1.3;margin-bottom:7px}
+    .norm-item-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+    .norm-item-stats span{display:block;font-size:10px;color:var(--muted);margin-bottom:2px}.norm-item-stats b{font-size:13px}
+    .norm-item-actions{display:flex;align-items:center;justify-content:space-between;gap:8px}.norm-item-actions button{min-height:34px;padding:6px 9px;font-size:12px}
+    .placeholder{min-height:360px;display:grid;place-items:center;text-align:center}.placeholder-inner{max-width:520px;padding:30px}.placeholder h2{font-size:24px;margin-bottom:8px}.placeholder p{line-height:1.55}
     .sync{font-size:12px;color:var(--muted);padding:7px 10px;border-radius:999px;background:var(--soft);white-space:nowrap}
     .sync.ok{color:var(--good);background:#ecfdf3}.sync.bad{color:var(--bad);background:#fef2f2}
-    @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.filters,.formgrid{grid-template-columns:1fr 1fr}.wrap{padding:12px}}
-    @media(max-width:700px){.filters,.formgrid{grid-template-columns:1fr}.analytics-table{display:none}.analytics-mobile{display:block}.actions{width:100%}.actions button{flex:1}.tabs{display:grid;width:100%}h1{font-size:21px}}
+    @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.filters,.formgrid{grid-template-columns:1fr 1fr}.norm-groups{grid-template-columns:1fr 1fr}.wrap{padding:12px}}
+    @media(max-width:700px){.filters,.formgrid,.norm-groups,.norm-subgroups{grid-template-columns:1fr}.analytics-table{display:none}.analytics-mobile{display:block}.actions{width:100%}.actions button{flex:1}.tabs{display:grid;width:100%}h1{font-size:21px}.norm-group.wide{grid-column:auto}}
   </style>
 </head>
 <body>
@@ -58,23 +73,24 @@
     <div class="top">
       <div>
         <h1>URALSTORE — нормативы и закупка</h1>
-        <div class="sub">v0.4 • открытая общая база • нормативы и аналитика текущего остатка</div>
+        <div class="sub">v0.5 • открытая общая база • обзор товарного капитала</div>
       </div>
       <div class="actions">
         <span id="syncState" class="sync">Подключение…</span>
         <button id="exportBtn">Экспорт копии</button>
         <button id="importBtn">Импорт копии</button>
         <input id="importFile" class="hidden" type="file" accept="application/json,.json">
-        <button class="primary" id="addBtn">+ Добавить норматив</button>
+        <button class="primary hidden" id="addBtn">+ Добавить норматив</button>
       </div>
     </div>
 
     <nav class="tabs" aria-label="Разделы приложения">
-      <button class="tab active" data-view="norms">Нормативы</button>
-      <button class="tab" data-view="analytics">Аналитика</button>
+      <button class="tab active" data-view="overview">Обзор</button>
+      <button class="tab" data-view="norms">Нормативы</button>
+      <button class="tab" data-view="repairs">Ремонты</button>
     </nav>
 
-    <main id="normsView">
+    <main id="normsView" class="hidden">
       <div class="grid">
         <div class="card"><span class="note">Норматив капитала</span><b id="mNorm">—</b></div>
         <div class="card"><span class="note">Текущий капитал</span><b id="mCurrent">—</b></div>
@@ -89,21 +105,16 @@
           <button id="resetDemo">Вернуть нормативы v0.2</button>
         </div>
       </div>
-      <div class="panel tablewrap">
-        <table>
-          <thead><tr><th>Категория</th><th>Позиция</th><th>Тип</th><th>Норматив</th><th>Есть</th><th>Ср. себест.</th><th>Рынок</th><th>Капитал</th><th>Отклонение</th><th>Статус</th><th></th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
+      <div id="normGroups" class="norm-groups"></div>
       <div class="panel"><b>Принцип</b><p class="note explain">Норматив — целевая загрузка капитала, а не требование любой ценой держать полный остаток. Количество не задано там, где на созвоне был зафиксирован только лимит капитала.</p></div>
     </main>
 
-    <main id="analyticsView" class="hidden">
+    <main id="overviewView">
       <div class="grid">
         <div class="card"><span class="note">Капитал в товаре</span><b id="aCapital">—</b><span class="detail">Текущий остаток × средняя себестоимость</span></div>
         <div class="card"><span class="note">Потенциальная выручка</span><b id="aRevenue">—</b><span class="detail" id="aCoverageRevenue">По позициям с указанной рыночной ценой</span></div>
         <div class="card"><span class="note">Потенциальная валовая прибыль</span><b id="aProfit">—</b><span class="detail">До операционных расходов и фактической реализации</span></div>
-        <div class="card"><span class="note">Средняя потенциальная маржа</span><b id="aMargin">—</b><span class="detail">Взвешена по капиталу оценённых позиций</span></div>
+        <div class="card"><span class="note">Потенциальная доходность капитала</span><b id="aMargin">—</b><span class="detail">Прибыль ÷ себестоимость оценённых позиций</span></div>
       </div>
       <div class="panel"><p class="note explain">Расчёты показывают потенциальный валовый результат текущего остатка при указанных рыночных ценах. Это не фактически полученная и не чистая прибыль. Обязательства исключены из товарной аналитики.</p></div>
       <div class="panel">
@@ -114,18 +125,22 @@
             <option value="capital-desc">Сначала больший капитал</option>
             <option value="profit-desc">Сначала большая прибыль</option>
             <option value="profit-asc">Сначала меньшая прибыль</option>
-            <option value="margin-desc">Сначала большая маржа</option>
-            <option value="margin-asc">Сначала меньшая маржа</option>
+            <option value="margin-desc">Сначала большая доходность</option>
+            <option value="margin-asc">Сначала меньшая доходность</option>
           </select>
         </div>
       </div>
       <div class="panel tablewrap analytics-table">
         <table style="min-width:900px">
-          <thead><tr><th>Позиция</th><th class="num">Остаток</th><th class="num">Капитал</th><th class="num">Потенциальная выручка</th><th class="num">Потенциальная прибыль</th><th class="num">Маржа</th></tr></thead>
+          <thead><tr><th>Позиция</th><th class="num">Остаток</th><th class="num">Капитал</th><th class="num">Потенциальная выручка</th><th class="num">Потенциальная прибыль</th><th class="num">Доходность</th></tr></thead>
           <tbody id="analyticsRows"></tbody>
         </table>
       </div>
       <div id="analyticsCards" class="analytics-mobile"></div>
+    </main>
+
+    <main id="repairsView" class="hidden">
+      <div class="panel placeholder"><div class="placeholder-inner"><span class="tag">В разработке</span><h2>Сервисные ремонты</h2><p class="note">Здесь будет путь ремонтного заказа: текущий статус, сроки, задержки, следующее действие и повторные обращения. Архитектуру раздела определим после разбора действующей Google-таблицы.</p></div></div>
     </main>
   </div>
 
@@ -142,7 +157,6 @@
         <div><label>Средняя себестоимость, ₽</label><input id="fAvg" type="number"></div>
         <div><label>Рыночная цена, ₽</label><input id="fMarket" type="number"></div>
         <div><label>Продажи, шт./мес.</label><input id="fSales" type="number" step="0.1"></div>
-        <div><label>Мин. маржа, %</label><input id="fMargin" type="number" step="0.1" value="3"></div>
       </div>
       <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px"><button id="deleteBtn" class="hidden">Удалить</button><button id="saveBtn" class="primary">Сохранить</button></div>
     </div>
@@ -249,10 +263,28 @@
       fillCategories('categoryFilter');
       const q=$('search').value.toLowerCase(),cf=$('categoryFilter').value,tf=$('typeFilter').value;
       const list=data.filter(x=>(!q||(x.name+' '+x.category).toLowerCase().includes(q))&&(!cf||x.category===cf)&&(!tf||x.type===tf));
-      $('rows').innerHTML=list.map(x=>{
-        const cap=x.qty*x.avg,gap=cap-x.normCapital,st=status(x);
-        return `<tr><td>${escapeHtml(x.category)}</td><td><b>${escapeHtml(x.name)}</b></td><td><span class="tag">${x.type==='sku'?'SKU':'Группа'}</span></td><td>${x.normQty?x.normQty+' шт. • ':''}${money(x.normCapital)}</td><td>${x.qty}</td><td>${money(x.avg)}</td><td>${money(x.market)}</td><td>${money(cap)}</td><td class="${gap>0?'bad':gap<0?'warn':'ok'}">${gap>0?'+':''}${money(gap)}</td><td class="${st[1]}">${st[0]}</td><td><button data-edit="${x.id}">Изм.</button> <button data-buy="${x.id}">Закупка</button></td></tr>`
-      }).join('');
+      const groupKey=x=>x.category==='Обязательства'?'obligations':(x.category==='iPhone новые'||x.category==='iPhone A/A+')?'phones':(x.category==='Аудио'||(x.category==='Sony'&&x.name==='DualSense'))?'audio':(x.category==='MacBook'||x.category==='iPad')?'computers':'other';
+      const groups=[
+        {key:'phones',title:'Телефоны',wide:true},
+        {key:'audio',title:'Аудио и аксессуары'},
+        {key:'computers',title:'Компьютеры и планшеты'},
+        {key:'other',title:'Другие устройства'},
+        {key:'obligations',title:'Обязательства'}
+      ];
+      const itemHtml=x=>{
+        const cap=x.qty*x.avg,st=x.category==='Обязательства'?['Лимит','']:status(x);
+        return `<article class="norm-item"><div class="norm-item-title">${escapeHtml(x.name)}</div><div class="norm-item-stats"><div><span>Норматив</span><b>${x.normQty?x.normQty+' шт. · ':''}${money(x.normCapital)}</b></div><div><span>Фактически</span><b>${x.qty?x.qty+' шт. · ':''}${money(cap)}</b></div></div><div class="norm-item-actions"><span class="tag ${st[1]}">${st[0]}</span><div><button data-edit="${x.id}">Изм.</button> <button data-buy="${x.id}">Закупка</button></div></div></article>`
+      };
+      $('normGroups').innerHTML=groups.map(group=>{
+        const items=list.filter(x=>groupKey(x)===group.key);if(!items.length)return'';
+        const norm=items.reduce((s,x)=>s+x.normCapital,0),fact=items.reduce((s,x)=>s+x.qty*x.avg,0);
+        let content=items.map(itemHtml).join('');
+        if(group.key==='phones'){
+          const fresh=items.filter(x=>x.category==='iPhone новые'),used=items.filter(x=>x.category==='iPhone A/A+');
+          content=`<div class="norm-subgroups">${fresh.length?`<section class="norm-subgroup"><p class="norm-subgroup-title">iPhone новые</p>${fresh.map(itemHtml).join('')}</section>`:''}${used.length?`<section class="norm-subgroup"><p class="norm-subgroup-title">iPhone A/A+</p>${used.map(itemHtml).join('')}</section>`:''}</div>`
+        }
+        return `<section class="norm-group ${group.wide?'wide':''}"><div class="norm-group-head"><h2>${group.title}</h2><div class="norm-group-total"><b>${money(norm)}</b><div class="note">факт ${money(fact)}</div></div></div>${content}</section>`
+      }).join('')||'<div class="panel note">По выбранным фильтрам позиций нет.</div>';
       const norm=data.reduce((s,x)=>s+x.normCapital,0),cur=data.reduce((s,x)=>s+x.qty*x.avg,0);
       $('mNorm').textContent=money(norm);$('mCurrent').textContent=money(cur);$('mGap').textContent=(cur-norm>0?'+':'')+money(cur-norm);$('mCount').textContent=data.length;
       document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(+b.dataset.edit));
@@ -295,14 +327,14 @@
       $('analyticsRows').innerHTML=rows;
       $('analyticsCards').innerHTML=list.map(x=>{
         const v=analyticsValues(x),profitClass=v.profit<0?'bad':v.profit>0?'ok':'';
-        return `<article class="position-card"><h3>${escapeHtml(x.name)}</h3><div class="note">${escapeHtml(x.category)} • остаток ${x.qty}</div><div class="position-values"><div><span>Капитал</span><b>${v.capital===null?'—':money(v.capital)}</b></div><div><span>Выручка</span><b>${v.revenue===null?'—':money(v.revenue)}</b></div><div><span>Потенц. прибыль</span><b class="${profitClass}">${v.profit===null?'—':money(v.profit)}</b></div><div><span>Маржа</span><b class="${profitClass}">${v.hasStock?percent(v.margin):'—'}</b></div></div></article>`
+        return `<article class="position-card"><h3>${escapeHtml(x.name)}</h3><div class="note">${escapeHtml(x.category)} • остаток ${x.qty}</div><div class="position-values"><div><span>Капитал</span><b>${v.capital===null?'—':money(v.capital)}</b></div><div><span>Выручка</span><b>${v.revenue===null?'—':money(v.revenue)}</b></div><div><span>Потенц. прибыль</span><b class="${profitClass}">${v.profit===null?'—':money(v.profit)}</b></div><div><span>Доходность</span><b class="${profitClass}">${v.hasStock?percent(v.margin):'—'}</b></div></div></article>`
       }).join('');
     }
     function renderAll(){renderNorms();renderAnalytics()}
 
     function openEdit(id=null){
       editing=id;const x=id?data.find(v=>v.id===id):{category:'',name:'',type:'sku',normQty:0,normCapital:0,qty:0,avg:0,market:0,sales:0,minMargin:3};
-      [['category','fCategory'],['name','fName'],['type','fType'],['normQty','fNormQty'],['normCapital','fNormCapital'],['qty','fQty'],['avg','fAvg'],['market','fMarket'],['sales','fSales'],['minMargin','fMargin']].forEach(([k,e])=>$(e).value=x[k]??'');
+      [['category','fCategory'],['name','fName'],['type','fType'],['normQty','fNormQty'],['normCapital','fNormCapital'],['qty','fQty'],['avg','fAvg'],['market','fMarket'],['sales','fSales']].forEach(([k,e])=>$(e).value=x[k]??'');
       $('modalTitle').textContent=id?'Редактировать норматив':'Новый норматив';$('deleteBtn').classList.toggle('hidden',!id);$('modal').classList.remove('hidden')
     }
     async function quickBuy(id){
@@ -339,13 +371,17 @@
     }
 
     document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{
-      const analytics=btn.dataset.view==='analytics';
+      const view=btn.dataset.view;
       document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===btn));
-      $('normsView').classList.toggle('hidden',analytics);$('analyticsView').classList.toggle('hidden',!analytics);$('addBtn').classList.toggle('hidden',analytics)
+      $('overviewView').classList.toggle('hidden',view!=='overview');
+      $('normsView').classList.toggle('hidden',view!=='norms');
+      $('repairsView').classList.toggle('hidden',view!=='repairs');
+      $('addBtn').classList.toggle('hidden',view!=='norms')
     });
     $('addBtn').onclick=()=>openEdit();$('closeBtn').onclick=()=>$('modal').classList.add('hidden');
     $('saveBtn').onclick=async()=>{
-      const o=normalize({id:editing||Date.now(),category:$('fCategory').value||'Без категории',name:$('fName').value||'Без названия',type:$('fType').value,normQty:$('fNormQty').value,normCapital:$('fNormCapital').value,qty:$('fQty').value,avg:$('fAvg').value,market:$('fMarket').value,sales:$('fSales').value,minMargin:$('fMargin').value});
+      const existing=editing?data.find(x=>x.id===editing):null;
+      const o=normalize({id:editing||Date.now(),category:$('fCategory').value||'Без категории',name:$('fName').value||'Без названия',type:$('fType').value,normQty:$('fNormQty').value,normCapital:$('fNormCapital').value,qty:$('fQty').value,avg:$('fAvg').value,market:$('fMarket').value,sales:$('fSales').value,minMargin:existing?.minMargin||0});
       const previous=structuredClone(data);if(editing)data=data.map(x=>x.id===editing?o:x);else data.push(o);
       if(await saveOne(o))$('modal').classList.add('hidden');else data=previous
     };
