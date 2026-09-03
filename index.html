@@ -28,7 +28,8 @@
     .card .detail{display:block;font-size:11px;color:var(--muted);margin-top:5px;line-height:1.35}
     .filters,.formgrid{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px}
     .formgrid{grid-template-columns:repeat(3,1fr)}
-    input,select{width:100%;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:9px;font-size:16px;background:#fff}
+    input,select,textarea{width:100%;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:9px;font:inherit;font-size:16px;background:#fff}
+    textarea{min-height:120px;resize:vertical;line-height:1.45}
     .tablewrap{overflow:auto}
     table{width:100%;border-collapse:collapse;min-width:1050px}
     th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:middle}
@@ -73,7 +74,7 @@
     <div class="top">
       <div>
         <h1>URALSTORE — нормативы и закупка</h1>
-        <div class="sub">v0.5 • открытая общая база • обзор товарного капитала</div>
+        <div class="sub">v0.6 • открытая общая база • обзор товарного капитала</div>
       </div>
       <div class="actions">
         <span id="syncState" class="sync">Подключение…</span>
@@ -156,7 +157,7 @@
         <div><label>Текущий остаток, шт.</label><input id="fQty" type="number"></div>
         <div><label>Средняя себестоимость, ₽</label><input id="fAvg" type="number"></div>
         <div><label>Рыночная цена, ₽</label><input id="fMarket" type="number"></div>
-        <div><label>Продажи, шт./мес.</label><input id="fSales" type="number" step="0.1"></div>
+        <div style="grid-column:1/-1"><label>Заметка к позиции</label><textarea id="fNotes" placeholder="Например: 17 Pro 256 — 2 шт.; 17 Pro Max 256 — 1 шт.; базовый 17 256 — 2 шт."></textarea><div class="note" style="margin-top:5px">Заметка видна всем, у кого есть доступ к приложению. Не указывайте клиентские и другие персональные данные.</div></div>
       </div>
       <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px"><button id="deleteBtn" class="hidden">Удалить</button><button id="saveBtn" class="primary">Сохранить</button></div>
     </div>
@@ -212,6 +213,7 @@
       out.id=Number(out.id)||Date.now()+Math.random();
       out.category=String(out.category||'Без категории');
       out.name=String(out.name||'Без названия');
+      out.notes=String(out.notes||'');
       out.type=out.type==='sku'?'sku':'group';
       return out;
     };
@@ -219,8 +221,8 @@
     try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');cachedData=Array.isArray(stored)?stored.map(normalize):structuredClone(defaults)}catch{cachedData=structuredClone(defaults)}
     let data=structuredClone(cachedData),editing=null,realtimeChannel=null,reloadTimer=null;
 
-    const toDb=x=>({id:x.id,category:x.category,name:x.name,type:x.type,norm_qty:x.normQty,norm_capital:x.normCapital,qty:x.qty,avg_cost:x.avg,market_price:x.market,sales_per_month:x.sales,min_margin:x.minMargin});
-    const fromDb=x=>normalize({id:x.id,category:x.category,name:x.name,type:x.type,normQty:x.norm_qty,normCapital:x.norm_capital,qty:x.qty,avg:x.avg_cost,market:x.market_price,sales:x.sales_per_month,minMargin:x.min_margin});
+    const toDb=x=>({id:x.id,category:x.category,name:x.name,type:x.type,norm_qty:x.normQty,norm_capital:x.normCapital,qty:x.qty,avg_cost:x.avg,market_price:x.market,sales_per_month:x.sales,min_margin:x.minMargin,notes:x.notes});
+    const fromDb=x=>normalize({id:x.id,category:x.category,name:x.name,type:x.type,normQty:x.norm_qty,normCapital:x.norm_capital,qty:x.qty,avg:x.avg_cost,market:x.market_price,sales:x.sales_per_month,minMargin:x.min_margin,notes:x.notes});
     function cacheAndRender(){localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
     function setSync(text,state=''){$('syncState').textContent=text;$('syncState').className='sync'+(state?' '+state:'')}
     async function loadCloudData(){
@@ -273,7 +275,7 @@
       ];
       const itemHtml=x=>{
         const cap=x.qty*x.avg,st=x.category==='Обязательства'?['Лимит','']:status(x);
-        return `<article class="norm-item"><div class="norm-item-title">${escapeHtml(x.name)}</div><div class="norm-item-stats"><div><span>Норматив</span><b>${x.normQty?x.normQty+' шт. · ':''}${money(x.normCapital)}</b></div><div><span>Фактически</span><b>${x.qty?x.qty+' шт. · ':''}${money(cap)}</b></div></div><div class="norm-item-actions"><span class="tag ${st[1]}">${st[0]}</span><div><button data-edit="${x.id}">Изм.</button> <button data-buy="${x.id}">Закупка</button></div></div></article>`
+        return `<article class="norm-item"><div class="norm-item-title">${escapeHtml(x.name)}</div>${x.notes.trim()?'<div style="margin-bottom:7px"><span class="tag">Есть заметка</span></div>':''}<div class="norm-item-stats"><div><span>Норматив</span><b>${x.normQty?x.normQty+' шт. · ':''}${money(x.normCapital)}</b></div><div><span>Фактически</span><b>${x.qty?x.qty+' шт. · ':''}${money(cap)}</b></div></div><div class="norm-item-actions"><span class="tag ${st[1]}">${st[0]}</span><div><button data-edit="${x.id}">Изм.</button> <button data-buy="${x.id}">Закупка</button></div></div></article>`
       };
       $('normGroups').innerHTML=groups.map(group=>{
         const items=list.filter(x=>groupKey(x)===group.key);if(!items.length)return'';
@@ -333,8 +335,8 @@
     function renderAll(){renderNorms();renderAnalytics()}
 
     function openEdit(id=null){
-      editing=id;const x=id?data.find(v=>v.id===id):{category:'',name:'',type:'sku',normQty:0,normCapital:0,qty:0,avg:0,market:0,sales:0,minMargin:3};
-      [['category','fCategory'],['name','fName'],['type','fType'],['normQty','fNormQty'],['normCapital','fNormCapital'],['qty','fQty'],['avg','fAvg'],['market','fMarket'],['sales','fSales']].forEach(([k,e])=>$(e).value=x[k]??'');
+      editing=id;const x=id?data.find(v=>v.id===id):{category:'',name:'',type:'sku',normQty:0,normCapital:0,qty:0,avg:0,market:0,sales:0,minMargin:3,notes:''};
+      [['category','fCategory'],['name','fName'],['type','fType'],['normQty','fNormQty'],['normCapital','fNormCapital'],['qty','fQty'],['avg','fAvg'],['market','fMarket'],['notes','fNotes']].forEach(([k,e])=>$(e).value=x[k]??'');
       $('modalTitle').textContent=id?'Редактировать норматив':'Новый норматив';$('deleteBtn').classList.toggle('hidden',!id);$('modal').classList.remove('hidden')
     }
     async function quickBuy(id){
@@ -344,7 +346,7 @@
       if(await saveOne(x))alert('Новая средняя себестоимость: '+money(x.avg));else{x.qty=oldQty;x.avg=oldAvg}
     }
     function exportBackup(){
-      const payload={schema:BACKUP_SCHEMA,version:1,appVersion:'0.4',exportedAt:new Date().toISOString(),data};
+      const payload={schema:BACKUP_SCHEMA,version:1,appVersion:'0.6',exportedAt:new Date().toISOString(),data};
       const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
       a.href=url;a.download=`uralstore-norms-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)
     }
@@ -381,7 +383,7 @@
     $('addBtn').onclick=()=>openEdit();$('closeBtn').onclick=()=>$('modal').classList.add('hidden');
     $('saveBtn').onclick=async()=>{
       const existing=editing?data.find(x=>x.id===editing):null;
-      const o=normalize({id:editing||Date.now(),category:$('fCategory').value||'Без категории',name:$('fName').value||'Без названия',type:$('fType').value,normQty:$('fNormQty').value,normCapital:$('fNormCapital').value,qty:$('fQty').value,avg:$('fAvg').value,market:$('fMarket').value,sales:$('fSales').value,minMargin:existing?.minMargin||0});
+      const o=normalize({id:editing||Date.now(),category:$('fCategory').value||'Без категории',name:$('fName').value||'Без названия',type:$('fType').value,normQty:$('fNormQty').value,normCapital:$('fNormCapital').value,qty:$('fQty').value,avg:$('fAvg').value,market:$('fMarket').value,sales:existing?.sales||0,minMargin:existing?.minMargin||0,notes:$('fNotes').value});
       const previous=structuredClone(data);if(editing)data=data.map(x=>x.id===editing?o:x);else data.push(o);
       if(await saveOne(o))$('modal').classList.add('hidden');else data=previous
     };
