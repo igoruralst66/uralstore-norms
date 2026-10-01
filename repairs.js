@@ -50,7 +50,7 @@ function login(){
     }
     const unlock=unlockRows?.[0];
     if(!unlock?.ok)throw new Error(unlock?.message||'Неверный код доступа.');
-    member=null;rows=[];notice='';await load();
+    member=null;rows=[];notice='';loading=false;await load();
   });};
 }
 function ticket(row){
@@ -158,7 +158,10 @@ function setUser(next){
 login();
 if(window.supabase){
   client=window.supabase.createClient('https://cwzobgsgsfbcaryspunh.supabase.co','sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x',{auth:{storageKey:'uralstore-repairs-auth',storage:localStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-  client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>setUser(session?.user||null),0);});
+  client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>{
+    if(authBusy&&session?.user){user=session.user;return;}
+    setUser(session?.user||null);
+  },0);});
   client.auth.getSession().then(({data,error})=>{if(error)showMessage(find('repairAuthMessage'),friendly(error));else setUser(data.session?.user||null);});
 }
 if(location.hash==='#repairs')document.querySelector('[data-view="repairs"]').click();
