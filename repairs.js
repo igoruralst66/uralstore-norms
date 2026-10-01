@@ -24,7 +24,7 @@ const seed=()=>[
   {...EMPTY,id:102,client:'Демо-клиент 3',device:'iPhone 13',reason:'Замена аккумулятора',owner:'Сотрудник',status:'ready',next_action:'Выдать устройство клиенту',client_total:6000,service_total:4000,service_paid:4000,service_paid_date:today(),version:1,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
 ];
 function login(){
-  root.innerHTML=`<section class="panel repair-login"><span class="tag">Доступ для сотрудников</span><h2 style="margin-top:16px">Сервисные ремонты</h2><p class="note explain" style="margin-top:10px">Введите своё имя и общий код магазина. Имя сохранится в истории ваших действий.</p><form id="repairLogin"><label for="repairName">Ваше имя</label><input id="repairName" autocomplete="name" maxlength="120" required placeholder="Например: Иван"><label for="repairCode">Код доступа</label><input id="repairCode" type="password" autocomplete="current-password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="4 цифры"><button class="primary" type="submit">Открыть ремонты</button></form><p id="repairAuthMessage" class="repair-message" role="status"></p><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><button id="repairDemo">Посмотреть демо</button><p class="note">Демо содержит вымышленные заказы и не сохраняется в общую базу.</p></section>`;
+  root.innerHTML=`<section class="panel repair-login"><span class="tag">Профиль сотрудника</span><h2 style="margin-top:16px">Сервисные ремонты</h2><p class="note explain" style="margin-top:10px">Укажите своё имя один раз. Оно сохранится в истории ваших действий с заказами.</p><form id="repairLogin"><label for="repairName">Ваше имя</label><input id="repairName" autocomplete="name" maxlength="120" required placeholder="Например: Иван"><button class="primary" type="submit">Продолжить</button></form><p id="repairAuthMessage" class="repair-message" role="status"></p><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><button id="repairDemo">Посмотреть демо</button><p class="note">Демо содержит вымышленные заказы и не сохраняется в общую базу.</p></section>`;
   find('repairDemo').onclick=()=>{epoch++;demo=true;rows=seed();eventsById={};notice='';scope='active';filter='all';query='';render();};
   const authAction=async action=>{
     if(authBusy)return;authBusy=true;
@@ -35,21 +35,16 @@ function login(){
     finally{authBusy=false;root.querySelectorAll('button').forEach(b=>b.disabled=false);}
   };
   find('repairLogin').onsubmit=e=>{e.preventDefault();authAction(async()=>{
-    const displayName=find('repairName').value.trim(),accessCode=find('repairCode').value;
+    const displayName=find('repairName').value.trim();
     if(displayName.length<2)throw new Error('Укажите имя сотрудника.');
-    let activeUser=user;
-    if(!activeUser){
-      const {data,error}=await client.auth.signInAnonymously();
-      if(error)throw new Error('Не удалось открыть защищённую сессию. Повторите попытку.');
-      activeUser=data.user;user=activeUser;
-    }
-    const {data:unlockRows,error}=await client.rpc('unlock_repairs',{p_code:accessCode,p_name:displayName});
+    if(!user){const session=await client.auth.getSession();if(session.error||!session.data.session?.user)throw new Error('Сначала войдите в приложение.');user=session.data.session.user;}
+    const {data:unlockRows,error}=await client.rpc('set_repair_member_name',{p_name:displayName});
     if(error){
       if(error.code==='P0001')throw new Error(error.message);
       throw error;
     }
     const unlock=unlockRows?.[0];
-    if(!unlock?.ok)throw new Error(unlock?.message||'Неверный код доступа.');
+    if(!unlock?.ok)throw new Error(unlock?.message||'Не удалось сохранить имя.');
     member=null;rows=[];notice='';loading=false;await load();
   });};
 }
@@ -68,7 +63,7 @@ function renderResults(){
 }
 function render(){
   const active=rows.filter(r=>r.status!=='closed');
-  root.innerHTML=`${demo?'<div class="repair-demo">Демо · вымышленные данные. Изменения исчезнут после выхода из демо или обновления страницы.</div>':''}<div class="repair-head"><div><h2>Сервисные ремонты</h2><p class="note">Заказ, следующий шаг и расчёты в одном месте</p></div><div class="repair-row"><button id="repairReload">Обновить</button><button id="repairSignout">${demo?'Выйти из демо':'Выйти'}</button><button id="repairNew" class="primary">+ Новый ремонт</button></div></div><div class="repair-summary"><div class="card"><span class="note">Активных заказов</span><b>${active.length}</b></div><div class="card"><span class="note">Клиенты должны</span><b>${money(active.reduce((s,r)=>s+(debt(r,'client')||0),0))}</b><span class="detail">Без заказов с неуказанной стоимостью: ${active.filter(r=>r.client_total==null).length}</span></div><div class="card"><span class="note">Мы должны сервисам</span><b>${money(active.reduce((s,r)=>s+(debt(r,'service')||0),0))}</b><span class="detail">Без заказов с неуказанной стоимостью: ${active.filter(r=>r.service_total==null).length}</span></div></div><div class="repair-row"><div><button id="repairActive" ${scope==='active'?'class="primary"':''}>Активные</button> <button id="repairHistory" ${scope==='history'?'class="primary"':''}>История</button></div><div class="repair-switch"><button id="repairBoard" aria-pressed="${layout==='board'}">Доска</button><button id="repairList" aria-pressed="${layout==='list'}">Список</button></div></div><div class="repair-tools"><input id="repairSearch" aria-label="Поиск ремонта" placeholder="Номер, клиент, устройство, сотрудник" value="${esc(query)}"><select id="repairFilter" aria-label="Фильтр ремонтов"><option value="all">Все заказы</option><option value="due">Срок сегодня или прошёл</option><option value="debt">Есть долг</option>${Object.entries(STATUSES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div><p class="repair-message bad" id="repairNotice" role="status">${esc(notice)}</p><p class="repair-refresh">${demo?'Демонстрационный режим':esc(member?.display_name||'')+' · '+(lastUpdated?'Обновлено '+date(lastUpdated):'Загрузка…')}</p><div id="repairResults"></div>`;
+  root.innerHTML=`${demo?'<div class="repair-demo">Демо · вымышленные данные. Изменения исчезнут после выхода из демо или обновления страницы.</div>':''}<div class="repair-head"><div><h2>Сервисные ремонты</h2><p class="note">Заказ, следующий шаг и расчёты в одном месте</p></div><div class="repair-row"><button id="repairReload">Обновить</button><button id="repairSignout">${demo?'Выйти из демо':'Сменить сотрудника'}</button><button id="repairNew" class="primary">+ Новый ремонт</button></div></div><div class="repair-summary"><div class="card"><span class="note">Активных заказов</span><b>${active.length}</b></div><div class="card"><span class="note">Клиенты должны</span><b>${money(active.reduce((s,r)=>s+(debt(r,'client')||0),0))}</b><span class="detail">Без заказов с неуказанной стоимостью: ${active.filter(r=>r.client_total==null).length}</span></div><div class="card"><span class="note">Мы должны сервисам</span><b>${money(active.reduce((s,r)=>s+(debt(r,'service')||0),0))}</b><span class="detail">Без заказов с неуказанной стоимостью: ${active.filter(r=>r.service_total==null).length}</span></div></div><div class="repair-row"><div><button id="repairActive" ${scope==='active'?'class="primary"':''}>Активные</button> <button id="repairHistory" ${scope==='history'?'class="primary"':''}>История</button></div><div class="repair-switch"><button id="repairBoard" aria-pressed="${layout==='board'}">Доска</button><button id="repairList" aria-pressed="${layout==='list'}">Список</button></div></div><div class="repair-tools"><input id="repairSearch" aria-label="Поиск ремонта" placeholder="Номер, клиент, устройство, сотрудник" value="${esc(query)}"><select id="repairFilter" aria-label="Фильтр ремонтов"><option value="all">Все заказы</option><option value="due">Срок сегодня или прошёл</option><option value="debt">Есть долг</option>${Object.entries(STATUSES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div><p class="repair-message bad" id="repairNotice" role="status">${esc(notice)}</p><p class="repair-refresh">${demo?'Демонстрационный режим':esc(member?.display_name||'')+' · '+(lastUpdated?'Обновлено '+date(lastUpdated):'Загрузка…')}</p><div id="repairResults"></div>`;
   find('repairFilter').value=filter;
   find('repairSearch').oninput=e=>{query=e.target.value;renderResults();};find('repairFilter').onchange=e=>{filter=e.target.value;renderResults();};
   find('repairActive').onclick=()=>{scope='active';filter='all';render();};find('repairHistory').onclick=()=>{scope='history';filter='all';render();};
@@ -106,7 +101,9 @@ function openOrder(id=null){
 }
 async function save(event){
   event.preventDefault();if(saving)return;
-  const data=formData(),message=dialog.querySelector('#repairSaveMessage'),problem=validate(data);if(problem){showMessage(message,problem);return;}
+  const data=formData(),message=dialog.querySelector('#repairSaveMessage');
+  if(isDraft(data)&&data.repeat_of!=null&&!rows.some(row=>row.id===data.repeat_of)){data.repeat_of=null;field('repeat_of').value='';}
+  const problem=validate(data);if(problem){showMessage(message,problem);return;}
   if(data.status==='closed'&&!['issued','closed'].includes(editing.status)){showMessage(message,'Сначала сохраните статус «Выдан».');return;}
   if(data.repeat_of!=null&&editing.id&&data.repeat_of>=editing.id){showMessage(message,'Укажите более ранний заказ.');return;}
   const note=dialog.querySelector('#repairAction').value.trim();
@@ -141,7 +138,7 @@ async function load(){
 }
 async function signout(){
   if(demo){epoch++;demo=false;loading=false;rows=[];eventsById={};notice='';if(user)await load();else login();return;}
-  const {error}=await client.auth.signOut({scope:'local'});if(error){notice=friendly(error);render();}
+  epoch++;member=null;rows=[];eventsById={};loading=false;notice='';login();
 }
 dialog.addEventListener('cancel',event=>{event.preventDefault();closeOrder();});
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
@@ -157,11 +154,12 @@ function setUser(next){
 }
 login();
 if(window.supabase){
-  client=window.supabase.createClient('https://cwzobgsgsfbcaryspunh.supabase.co','sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x',{auth:{storageKey:'uralstore-repairs-auth',storage:localStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+  client=window.uralstoreDb||window.supabase.createClient('https://cwzobgsgsfbcaryspunh.supabase.co','sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x',{auth:{storageKey:'uralstore-app-auth',storage:localStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>{
     if(authBusy&&session?.user){user=session.user;return;}
     setUser(session?.user||null);
   },0);});
   client.auth.getSession().then(({data,error})=>{if(error)showMessage(find('repairAuthMessage'),friendly(error));else setUser(data.session?.user||null);});
 }
+window.addEventListener('app-access-signout',()=>setUser(null));
 if(location.hash==='#repairs')document.querySelector('[data-view="repairs"]').click();
