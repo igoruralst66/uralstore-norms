@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>URALSTORE — Нормативы и аналитика</title>
+  <title>URALSTORE — Нормативы и ремонты</title>
+  <link rel="stylesheet" href="repairs.css?v=1">
   <style>
     :root{--bg:#f5f5f7;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#111827;--soft:#eef2f7;--good:#166534;--warn:#92400e;--bad:#991b1b}
     *{box-sizing:border-box}
@@ -73,8 +74,8 @@
   <div class="wrap">
     <div class="top">
       <div>
-        <h1>URALSTORE — нормативы и закупка</h1>
-        <div class="sub">v0.6 • открытая общая база • обзор товарного капитала</div>
+        <h1>URALSTORE</h1>
+        <div class="sub">v0.7 • нормативы и ремонты</div>
       </div>
       <div class="actions">
         <span id="syncState" class="sync">Подключение…</span>
@@ -141,7 +142,7 @@
     </main>
 
     <main id="repairsView" class="hidden">
-      <div class="panel placeholder"><div class="placeholder-inner"><span class="tag">В разработке</span><h2>Сервисные ремонты</h2><p class="note">Здесь будет путь ремонтного заказа: текущий статус, сроки, задержки, следующее действие и повторные обращения. Архитектуру раздела определим после разбора действующей Google-таблицы.</p></div></div>
+      <div id="repairsRoot"><div class="panel">Загрузка раздела ремонтов…</div></div>
     </main>
   </div>
 
@@ -169,7 +170,7 @@
     const BACKUP_SCHEMA='uralstore-norms-backup';
     const SUPABASE_URL='https://cwzobgsgsfbcaryspunh.supabase.co';
     const SUPABASE_KEY='sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x';
-    const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+    const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
     const defaults=[
       {id:1,category:'iPhone новые',name:'iPhone 17 Pro Max 256 GB eSIM',type:'sku',normQty:3,normCapital:310000},
       {id:2,category:'iPhone новые',name:'iPhone 17 Pro 256 GB eSIM',type:'sku',normQty:3,normCapital:285000},
@@ -224,7 +225,7 @@
     const toDb=x=>({id:x.id,category:x.category,name:x.name,type:x.type,norm_qty:x.normQty,norm_capital:x.normCapital,qty:x.qty,avg_cost:x.avg,market_price:x.market,sales_per_month:x.sales,min_margin:x.minMargin,notes:x.notes});
     const fromDb=x=>normalize({id:x.id,category:x.category,name:x.name,type:x.type,normQty:x.norm_qty,normCapital:x.norm_capital,qty:x.qty,avg:x.avg_cost,market:x.market_price,sales:x.sales_per_month,minMargin:x.min_margin,notes:x.notes});
     function cacheAndRender(){localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
-    function setSync(text,state=''){$('syncState').textContent=text;$('syncState').className='sync'+(state?' '+state:'')}
+    function setSync(text,state=''){$('syncState').textContent=text;$('syncState').className='sync'+(state?' '+state:'')+(!$('repairsView').classList.contains('hidden')?' hidden':'')}
     async function loadCloudData(){
       setSync('Синхронизация…');
       const {data:rows,error}=await db.from('norms').select('*').order('id');
@@ -368,7 +369,7 @@
           clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>loadCloudData().catch(()=>{}),250)
         }).subscribe()
       }catch(error){
-        setSync('Ошибка общей базы','bad');alert('Не удалось открыть общую базу: '+error.message)
+        setSync('Нормативы: нет связи с базой','bad');$('syncState').title=error.message
       }
     }
 
@@ -378,7 +379,9 @@
       $('overviewView').classList.toggle('hidden',view!=='overview');
       $('normsView').classList.toggle('hidden',view!=='norms');
       $('repairsView').classList.toggle('hidden',view!=='repairs');
-      $('addBtn').classList.toggle('hidden',view!=='norms')
+      $('addBtn').classList.toggle('hidden',view!=='norms');
+      ['exportBtn','importBtn','syncState'].forEach(id=>$(id).classList.toggle('hidden',view==='repairs'));
+      if(view==='repairs')window.dispatchEvent(new Event('repairs-visible'))
     });
     $('addBtn').onclick=()=>openEdit();$('closeBtn').onclick=()=>$('modal').classList.add('hidden');
     $('saveBtn').onclick=async()=>{
@@ -394,5 +397,6 @@
     $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('importFile').click();$('importFile').onchange=e=>e.target.files[0]&&importBackup(e.target.files[0]);
     startApp();
   </script>
+  <script type="module" src="repairs.js?v=1"></script>
 </body>
 </html>
