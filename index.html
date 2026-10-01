@@ -19,7 +19,7 @@
     button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 13px;min-height:42px;font-size:15px;cursor:pointer}
     button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #64748b;outline-offset:2px}
     .primary{background:var(--accent);color:#fff}
-    .tabs{display:inline-grid;grid-template-columns:repeat(3,1fr);background:#e9eaed;border-radius:12px;padding:3px;margin-bottom:14px}
+    .tabs{display:inline-grid;grid-template-columns:repeat(5,1fr);background:#e9eaed;border-radius:12px;padding:3px;margin-bottom:14px}
     .tab{border:0;background:transparent;min-height:38px;padding:8px 18px;color:var(--muted)}
     .tab.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(17,24,39,.08)}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
@@ -66,18 +66,39 @@
     .placeholder{min-height:360px;display:grid;place-items:center;text-align:center}.placeholder-inner{max-width:520px;padding:30px}.placeholder h2{font-size:24px;margin-bottom:8px}.placeholder p{line-height:1.55}
     .sync{font-size:12px;color:var(--muted);padding:7px 10px;border-radius:999px;background:var(--soft);white-space:nowrap}
     .sync.ok{color:var(--good);background:#ecfdf3}.sync.bad{color:var(--bad);background:#fef2f2}
+    .shift-toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.shift-toolbar>div{min-width:150px}.shift-toolbar button{min-height:42px}
+    .shift-tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}.shift-table{border-collapse:separate;border-spacing:0;min-width:760px;width:100%}.shift-table th,.shift-table td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px;text-align:center;min-width:94px}.shift-table th:first-child,.shift-table td:first-child{position:sticky;left:0;background:#fff;z-index:2;min-width:102px}.shift-table th:nth-child(2),.shift-table td:nth-child(2){position:sticky;left:102px;background:#fff;z-index:2;min-width:116px}.shift-table thead th{position:sticky;top:0;z-index:3;background:#f8fafc;color:var(--text);padding:8px 5px}.shift-table thead th:first-child,.shift-table thead th:nth-child(2){z-index:4}.shift-name{display:flex;gap:4px;align-items:center}.shift-name input{min-width:0;min-height:34px;padding:5px;font-size:13px;text-align:center}.shift-remove{min-height:30px!important;padding:3px 6px!important;font-size:12px!important;color:var(--bad)}.shift-day{font-weight:600;white-space:nowrap}.shift-date{white-space:nowrap;color:var(--muted);font-size:12px}.shift-weekend{background:#fafafa!important}.shift-table select{min-height:34px;padding:4px;font-size:13px;text-align:center;background:#fff}.shift-table select.shift-os{background:#e5f2df}.shift-table select.shift-zo{background:#e9edf2}.shift-table select.shift-off{background:#d1d1d1}.shift-totals th,.shift-totals td{background:#f8fafc;font-size:12px}.shift-totals td{white-space:nowrap}.shift-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.shift-summary .card b{font-size:17px}
+    .shift-table select.shift-rs{background:#dff0d8;color:#285c24}.shift-table select.shift-os{background:#b9dfad;color:#1e4d1b;font-weight:650}.shift-table select.shift-zo{background:#dcecf5;color:#24536b}.shift-table select.shift-off{background:#d1d1d1;color:#4b4b4b}
+    .shift-rate{display:grid;grid-template-columns:1fr auto;gap:4px;align-items:center;margin-top:5px}.shift-rate span{font-size:10px;color:var(--muted);text-align:left}.shift-rate input{width:82px;min-height:30px;padding:4px 6px;font-size:12px;text-align:right}.shift-cell-stack{display:grid;gap:5px}.shift-close{min-height:28px;padding:3px 6px;font-size:11px;border-color:#f0b45a;background:#fff8e8;color:#805000}.shift-close.closed{border-color:#75b76a;background:#e6f4df;color:#285c24;font-weight:650}.shift-closed-row{box-shadow:inset 0 0 0 1px rgba(69,135,61,.08)}
+    .motivation-calendar{overflow:auto}.motivation-calendar table{min-width:760px}.motivation-cell{width:100%;min-height:42px;padding:5px 7px;border-radius:8px;font-size:12px}.motivation-cell.empty{color:var(--muted);background:#fff}.motivation-cell.pending{color:#805000;background:#fff8e8}.motivation-cell.plus{background:#e6f4df;color:#285c24}.motivation-cell.minus{background:#f8dddd;color:#8b1f1f}.motivation-cell.mixed{background:#fff0c9;color:#7a4b00}.motivation-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.motivation-summary .card b{font-size:17px}.motivation-dialog{width:min(680px,calc(100% - 24px));border:0;border-radius:16px;padding:0;box-shadow:0 20px 70px rgba(0,0,0,.25)}.motivation-dialog::backdrop{background:rgba(15,23,42,.45)}.motivation-dialog-inner{padding:18px}.motivation-event{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}.motivation-event:last-child{border-bottom:0}.motivation-event strong.plus{color:var(--good)}.motivation-event strong.minus{color:var(--bad)}.motivation-salary{padding:10px 12px;margin:10px 0;border-radius:10px;background:#eef7ea;color:#285c24}.motivation-salary.pending{background:#fff8e8;color:#805000}.motivation-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}.motivation-form .wide{grid-column:1/-1}.motivation-empty{text-align:center;padding:36px;color:var(--muted)}
+    .access-gate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:linear-gradient(145deg,#f8fafc,#eef2f7)}.access-card{width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 24px 80px rgba(15,23,42,.14)}.access-card h1{margin-bottom:7px}.access-card form{display:grid;gap:12px;margin-top:22px}.access-card input{text-align:center;font-size:24px;letter-spacing:.35em}.access-message{min-height:20px;margin-top:12px;color:var(--muted)}.access-message.bad{color:var(--bad)}.access-role{font-size:12px;color:var(--muted);padding:7px 10px;border-radius:999px;background:var(--soft);white-space:nowrap}.app-locked>.wrap,.app-locked>#modal,.app-locked>#motivationDialog{display:none!important}body:not(.app-locked)>.access-gate{display:none}.role-hidden{display:none!important}
     @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.filters,.formgrid{grid-template-columns:1fr 1fr}.norm-groups{grid-template-columns:1fr 1fr}.wrap{padding:12px}}
-    @media(max-width:700px){.filters,.formgrid,.norm-groups,.norm-subgroups{grid-template-columns:1fr}.analytics-table{display:none}.analytics-mobile{display:block}.actions{width:100%}.actions button{flex:1}.tabs{display:grid;width:100%}h1{font-size:21px}.norm-group.wide{grid-column:auto}}
+    @media(max-width:700px){.filters,.formgrid,.norm-groups,.norm-subgroups{grid-template-columns:1fr}.analytics-table{display:none}.analytics-mobile{display:block}.actions{width:100%}.actions button{flex:1}.tabs{display:grid;width:100%}h1{font-size:21px}.norm-group.wide{grid-column:auto}.shift-summary,.motivation-summary{grid-template-columns:repeat(2,1fr)}.motivation-form{grid-template-columns:1fr}}
   </style>
 </head>
-<body>
+<body class="app-locked">
+  <section id="accessGate" class="access-gate" aria-labelledby="accessTitle">
+    <div class="access-card">
+      <span class="tag">URALSTORE</span>
+      <h1 id="accessTitle">Вход в приложение</h1>
+      <p class="note explain">Введите четырёхзначный код доступа.</p>
+      <form id="accessForm">
+        <label for="accessCode">Код доступа</label>
+        <input id="accessCode" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" minlength="4" maxlength="4" required placeholder="••••">
+        <button id="accessSubmit" class="primary" type="submit">Войти</button>
+      </form>
+      <p id="accessMessage" class="access-message" role="status">Проверка подключения…</p>
+    </div>
+  </section>
   <div class="wrap">
     <div class="top">
       <div>
         <h1>URALSTORE</h1>
-        <div class="sub">v1.0 • нормативы и ремонты</div>
+        <div class="sub">v1.1 • внутренний кабинет</div>
       </div>
       <div class="actions">
+        <span id="accessRole" class="access-role hidden"></span>
+        <button id="accessLogout" class="hidden">Выйти</button>
         <span id="syncState" class="sync">Подключение…</span>
         <button id="exportBtn">Экспорт копии</button>
         <button id="importBtn">Импорт копии</button>
@@ -87,9 +108,11 @@
     </div>
 
     <nav class="tabs" aria-label="Разделы приложения">
-      <button class="tab active" data-view="overview">Обзор</button>
-      <button class="tab" data-view="norms">Нормативы</button>
+      <button class="tab active" data-view="overview" data-access="admin">Обзор</button>
+      <button class="tab" data-view="norms" data-access="admin">Нормативы</button>
       <button class="tab" data-view="repairs">Ремонты</button>
+      <button class="tab" data-view="shifts">Смены</button>
+      <button class="tab" data-view="motivation">Мотивация</button>
     </nav>
 
     <main id="normsView" class="hidden">
@@ -144,7 +167,24 @@
     <main id="repairsView" class="hidden">
       <div id="repairsRoot"><div class="panel">Загрузка раздела ремонтов…</div></div>
     </main>
+
+    <main id="shiftsView" class="hidden">
+      <div class="panel">
+        <div class="section-head"><div><h2>Календарь смен</h2><p class="note explain">Укажите дневной оклад сотрудника. Рабочая смена попадёт в расчёт мотивации только после нажатия «Закрыть смену».</p></div></div>
+        <div class="shift-toolbar" style="margin-top:14px"><div><label for="shiftMonth">Месяц</label><input id="shiftMonth" type="month"></div><div><label for="shiftEmployee">Новый сотрудник</label><input id="shiftEmployee" placeholder="Имя сотрудника"></div><button id="shiftAddEmployee" class="primary">Добавить сотрудника</button></div>
+      </div>
+      <div class="panel shift-tablewrap"><div id="shiftCalendar"></div></div>
+    </main>
+
+    <main id="motivationView" class="hidden">
+      <div class="panel">
+        <div class="section-head"><div><h2>Календарь мотивации</h2><p class="note explain">Итог дня: оклад за закрытую смену + бонусы − штрафы. Нажмите на ячейку, чтобы добавить бонус или штраф.</p></div><div><label for="motivationMonth">Месяц</label><input id="motivationMonth" type="month"></div></div>
+      </div>
+      <div class="panel motivation-calendar"><div id="motivationCalendar"></div></div>
+    </main>
   </div>
+
+  <dialog id="motivationDialog" class="motivation-dialog" aria-labelledby="motivationDialogTitle"></dialog>
 
   <div id="modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.35);padding:16px;overflow:auto">
     <div style="max-width:720px;margin:30px auto;background:#fff;border-radius:16px;padding:16px">
@@ -170,7 +210,8 @@
     const BACKUP_SCHEMA='uralstore-norms-backup';
     const SUPABASE_URL='https://cwzobgsgsfbcaryspunh.supabase.co';
     const SUPABASE_KEY='sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x';
-    const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+    const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'uralstore-app-auth',storage:localStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+    window.uralstoreDb=db;
     const defaults=[
       {id:1,category:'iPhone новые',name:'iPhone 17 Pro Max 256 GB eSIM',type:'sku',normQty:3,normCapital:310000},
       {id:2,category:'iPhone новые',name:'iPhone 17 Pro 256 GB eSIM',type:'sku',normQty:3,normCapital:285000},
@@ -218,9 +259,75 @@
       out.type=out.type==='sku'?'sku':'group';
       return out;
     };
+    let accessRole=null,normsStarted=false;
+    function accessMessage(text,bad=false){const target=$('accessMessage');target.textContent=text;target.className='access-message'+(bad?' bad':'')}
+    function showAccessGate(message='Введите код доступа.'){accessRole=null;document.body.classList.add('app-locked');$('accessRole').classList.add('hidden');$('accessLogout').classList.add('hidden');$('accessCode').value='';accessMessage(message,false)}
+    async function ensureAppUser(){const current=await db.auth.getSession();if(current.error)throw current.error;if(current.data.session?.user)return current.data.session.user;const created=await db.auth.signInAnonymously();if(created.error)throw created.error;return created.data.user}
+    function openView(view){const button=document.querySelector(`.tab[data-view="${view}"]`);if(button)button.click()}
+    function applyAccess(role){accessRole=role;const admin=role==='admin';document.querySelectorAll('[data-access="admin"]').forEach(node=>node.classList.toggle('role-hidden',!admin));document.body.classList.remove('app-locked');$('accessRole').textContent=admin?'Администратор':'Сотрудник';$('accessRole').classList.remove('hidden');$('accessLogout').classList.remove('hidden');if(admin){if(!normsStarted)startApp();openView('overview')}else openView('repairs');window.dispatchEvent(new CustomEvent('app-access-ready',{detail:{role}}))}
+    async function restoreAccess(){accessMessage('Проверка подключения…');try{const session=await db.auth.getSession();if(session.error)throw session.error;if(!session.data.session){showAccessGate();return}const result=await db.rpc('get_app_access');if(result.error)throw result.error;const role=result.data?.[0]?.access_role;if(role)applyAccess(role);else showAccessGate()}catch(error){showAccessGate(/fetch|network|load failed/i.test(error.message||'')?'Нет связи с сервером. Проверьте интернет и повторите.':'Не удалось проверить доступ. Повторите попытку.');$('accessMessage').classList.add('bad')}}
+
     let cachedData;
     try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');cachedData=Array.isArray(stored)?stored.map(normalize):structuredClone(defaults)}catch{cachedData=structuredClone(defaults)}
     let data=structuredClone(cachedData),editing=null,realtimeChannel=null,reloadTimer=null;
+
+    const SHIFT_KEY='uralstore_shifts_v01';
+    const SHIFT_STATUSES=[['','— Не назначено'],['rs','РС · рабочая смена'],['os','ОС · ответственный'],['zo','ЗО · зона ответственности'],['off','ВЫХ · выходной']];
+    const shiftWeekdays=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    const shiftDefaults=['Настя','Ксюша','Фарида','Игорь','Костя','Арман','Сережа'];
+    let shiftState={month:'2026-10',employees:structuredClone(shiftDefaults),cells:{},rates:shiftDefaults.map(()=>0),closed:{}};
+    try{const stored=JSON.parse(localStorage.getItem(SHIFT_KEY)||'null');if(stored&&Array.isArray(stored.employees)&&stored.cells){const employees=stored.employees.filter(x=>String(x).trim()).map(x=>String(x).trim());shiftState={...shiftState,...stored,employees,cells:stored.cells||{},rates:employees.map((_,index)=>Math.max(0,Number(stored.rates?.[index])||0)),closed:stored.closed&&typeof stored.closed==='object'?stored.closed:{}}}}catch{}
+    function saveShiftState(){localStorage.setItem(SHIFT_KEY,JSON.stringify(shiftState))}
+    function shiftDays(){const [year,month]=shiftState.month.split('-').map(Number),count=new Date(year,month,0).getDate();return Array.from({length:count},(_,i)=>{const d=new Date(year,month-1,i+1);return {day:i+1,date:`${shiftState.month}-${String(i+1).padStart(2,'0')}`,weekday:shiftWeekdays[d.getDay()],weekend:d.getDay()===0||d.getDay()===6}})}
+    function shiftCellKey(date,index){return `${date}|${index}`}
+    function isWorkShift(value){return value==='rs'||value==='os'||value==='zo'}
+    function reindexShiftMap(source,removedIndex){const next={};Object.entries(source||{}).forEach(([key,value])=>{const [date,indexText]=key.split('|'),employeeIndex=Number(indexText);if(employeeIndex<removedIndex)next[`${date}|${employeeIndex}`]=value;else if(employeeIndex>removedIndex)next[`${date}|${employeeIndex-1}`]=value});return next}
+    function shiftTotals(index){const days=shiftDays(),values=days.map(d=>shiftState.cells[shiftCellKey(d.date,index)]||''),rs=values.filter(v=>v==='rs').length,os=values.filter(v=>v==='os').length,zo=values.filter(v=>v==='zo').length,off=values.filter(v=>v==='off').length,closed=days.filter(d=>isWorkShift(shiftState.cells[shiftCellKey(d.date,index)]||'')&&shiftState.closed[shiftCellKey(d.date,index)]).length;return {rs,os,zo,off,total:rs+os+zo,closed,salary:closed*(Number(shiftState.rates[index])||0)}}
+    function renderShifts(){
+      const month=$('shiftMonth'),name=$('shiftEmployee'),target=$('shiftCalendar');if(!month||!target)return;
+      month.value=shiftState.month;
+      const days=shiftDays();
+      if(!shiftState.employees.length){target.innerHTML='<div class="placeholder"><div class="placeholder-inner"><h2>Добавьте сотрудников</h2><p class="note">Имена можно менять вручную в любой момент.</p></div></div>';return}
+      const headers=shiftState.employees.map((employee,index)=>`<th><div class="shift-name"><input data-shift-name="${index}" value="${escapeHtml(employee)}" aria-label="Имя сотрудника ${index+1}"><button type="button" class="shift-remove" data-shift-remove="${index}" title="Убрать сотрудника">×</button></div><label class="shift-rate"><span>Оклад / смена, ₽</span><input data-shift-rate="${index}" type="number" min="0" step="1" value="${Number(shiftState.rates[index])||0}" aria-label="Дневной оклад ${escapeHtml(employee)}"></label></th>`).join('');
+      const rows=days.map(day=>`<tr><td class="shift-day ${day.weekend?'shift-weekend':''}">${day.weekday}</td><td class="shift-date ${day.weekend?'shift-weekend':''}">${day.date.split('-').reverse().join('.')}</td>${shiftState.employees.map((_,index)=>{const key=shiftCellKey(day.date,index),value=shiftState.cells[key]||'',closed=isWorkShift(value)&&Boolean(shiftState.closed[key]);return `<td class="${day.weekend?'shift-weekend ':''}${closed?'shift-closed-row':''}"><div class="shift-cell-stack"><select data-shift-cell="${key}" class="shift-${value}" aria-label="${day.date}, ${escapeHtml(shiftState.employees[index])}">${SHIFT_STATUSES.map(([status,label])=>`<option value="${status}" ${status===value?'selected':''}>${label}</option>`).join('')}</select>${isWorkShift(value)?`<button type="button" class="shift-close ${closed?'closed':''}" data-shift-close="${key}">${closed?'✓ Смена закрыта':'Закрыть смену'}</button>`:''}</div></td>`}).join('')}</tr>`).join('');
+      const totals=shiftState.employees.map((_,index)=>{const t=shiftTotals(index);return `<td><b>${t.closed} из ${t.total} закрыто</b><br><span class="note">Начислено ${money(t.salary)}</span></td>`}).join('');
+      target.innerHTML=`<table class="shift-table"><thead><tr><th>День</th><th>Дата</th>${headers}</tr></thead><tbody>${rows}</tbody><tfoot class="shift-totals"><tr><th colspan="2">Закрытые / рабочие смены</th>${totals}</tr></tfoot></table><p class="note" style="margin:12px 4px 0"><b>РС</b> — рабочая смена; <b>ОС</b> — ответственный смены; <b>ЗО</b> — зона ответственности; <b>ВЫХ</b> — выходной. Оклад начисляется только за закрытые рабочие смены.</p><div class="shift-summary">${shiftState.employees.map((employee,index)=>{const t=shiftTotals(index);return `<div class="card"><span class="note">${escapeHtml(employee)}</span><b>${t.closed} из ${t.total} закрыто</b><span class="detail">Оклад: ${money(t.salary)} · ставка ${money(shiftState.rates[index]||0)}</span></div>`}).join('')}</div>`;
+      target.querySelectorAll('[data-shift-cell]').forEach(select=>select.onchange=()=>{const [date,index]=select.dataset.shiftCell.split('|'),key=shiftCellKey(date,index);shiftState.cells[key]=select.value;if(!isWorkShift(select.value))delete shiftState.closed[key];saveShiftState();renderShifts();renderMotivation()});
+      target.querySelectorAll('[data-shift-close]').forEach(button=>button.onclick=()=>{const key=button.dataset.shiftClose;shiftState.closed[key]=!shiftState.closed[key];if(!shiftState.closed[key])delete shiftState.closed[key];saveShiftState();renderShifts();renderMotivation()});
+      target.querySelectorAll('[data-shift-rate]').forEach(input=>input.oninput=()=>{const index=Number(input.dataset.shiftRate);shiftState.rates[index]=Math.max(0,Number(input.value)||0);saveShiftState();renderMotivation()});
+      target.querySelectorAll('[data-shift-name]').forEach(input=>input.onchange=()=>{const index=Number(input.dataset.shiftName),next=input.value.trim(),previous=shiftState.employees[index];if(next){shiftState.employees[index]=next;motivationEvents.forEach(event=>{if(event.employee===previous)event.employee=next});saveShiftState();saveMotivationEvents();renderShifts();renderMotivation()}else input.value=shiftState.employees[index]});
+      target.querySelectorAll('[data-shift-remove]').forEach(button=>button.onclick=()=>{const index=Number(button.dataset.shiftRemove);if(!confirm(`Убрать сотрудника «${shiftState.employees[index]}» из списка?`))return;shiftState.employees.splice(index,1);shiftState.rates.splice(index,1);shiftState.cells=reindexShiftMap(shiftState.cells,index);shiftState.closed=reindexShiftMap(shiftState.closed,index);saveShiftState();renderShifts();renderMotivation()});
+    }
+    function initShifts(){const month=$('shiftMonth'),add=$('shiftAddEmployee'),name=$('shiftEmployee');if(!month||month.dataset.ready)return;month.dataset.ready='1';month.value=shiftState.month;month.onchange=()=>{shiftState.month=month.value||shiftState.month;saveShiftState();renderShifts()};add.onclick=()=>{const next=name.value.trim();if(!next)return;shiftState.employees.push(next);shiftState.rates.push(0);name.value='';saveShiftState();renderShifts();renderMotivation()};renderShifts()}
+
+    const MOTIVATION_KEY='uralstore_motivation_events_v01';
+    let motivationMonth=shiftState.month,motivationEvents=[];
+    try{const stored=JSON.parse(localStorage.getItem(MOTIVATION_KEY)||'null');if(stored&&Array.isArray(stored.events)){motivationMonth=stored.month||motivationMonth;motivationEvents=stored.events}}catch{}
+    function saveMotivationEvents(){localStorage.setItem(MOTIVATION_KEY,JSON.stringify({month:motivationMonth,events:motivationEvents}))}
+    function motivationDays(){const [year,month]=motivationMonth.split('-').map(Number),count=new Date(year,month,0).getDate();return Array.from({length:count},(_,i)=>{const date=new Date(year,month-1,i+1);return {date:`${motivationMonth}-${String(i+1).padStart(2,'0')}`,weekday:shiftWeekdays[date.getDay()],weekend:date.getDay()===0||date.getDay()===6}})}
+    function employeeMonthEvents(employee){return motivationEvents.filter(event=>event.employee===employee&&event.date.startsWith(motivationMonth))}
+    function motivationSums(events){const bonus=events.filter(e=>e.type==='bonus').reduce((sum,e)=>sum+(Number(e.amount)||0),0),penalty=events.filter(e=>e.type==='penalty').reduce((sum,e)=>sum+(Number(e.amount)||0),0);return {bonus,penalty,total:bonus-penalty}}
+    function shiftSalaryForDay(employee,date){const index=shiftState.employees.indexOf(employee);if(index<0)return {planned:false,closed:false,amount:0};const key=shiftCellKey(date,index),status=shiftState.cells[key]||'',planned=isWorkShift(status),closed=planned&&Boolean(shiftState.closed[key]);return {planned,closed,amount:closed?(Number(shiftState.rates[index])||0):0,status}}
+    function motivationDayTotals(employee,date,events){const eventSums=motivationSums(events),shift=shiftSalaryForDay(employee,date),salary=shift.amount;return {...eventSums,shift,salary,total:salary+eventSums.bonus-eventSums.penalty}}
+    function employeeMonthTotals(employee){const events=employeeMonthEvents(employee),eventSums=motivationSums(events),salary=motivationDays().reduce((sum,day)=>sum+shiftSalaryForDay(employee,day.date).amount,0);return {...eventSums,salary,total:salary+eventSums.bonus-eventSums.penalty}}
+    function renderMotivation(){
+      const target=$('motivationCalendar'),month=$('motivationMonth');if(!target||!month)return;month.value=motivationMonth;
+      if(!shiftState.employees.length){target.innerHTML='<div class="motivation-empty">Сначала добавьте сотрудников в разделе «Смены».</div>';return}
+      const headers=shiftState.employees.map(employee=>`<th>${escapeHtml(employee)}</th>`).join('');
+      const rows=motivationDays().map(day=>`<tr><td class="shift-day ${day.weekend?'shift-weekend':''}">${day.weekday}</td><td class="shift-date ${day.weekend?'shift-weekend':''}">${day.date.split('-').reverse().join('.')}</td>${shiftState.employees.map((employee,index)=>{const events=motivationEvents.filter(event=>event.date===day.date&&event.employee===employee),sums=motivationDayTotals(employee,day.date,events),hasResult=events.length||sums.shift.closed,kind=!hasResult&&sums.shift.planned?'pending':!hasResult?'empty':sums.bonus&&sums.penalty?'mixed':sums.total>=0?'plus':'minus',details=[sums.shift.closed?`оклад ${money(sums.salary)}`:sums.shift.planned?'смена не закрыта':'',events.length?`${events.length} зап.`:''].filter(Boolean).join(' · ');return `<td class="${day.weekend?'shift-weekend':''}"><button type="button" class="motivation-cell ${kind}" data-motivation-date="${day.date}" data-motivation-employee="${index}">${hasResult?`<b>${sums.total>0?'+':''}${money(sums.total)}</b>${details?`<br><span>${details}</span>`:''}`:sums.shift.planned?'<b>Ожидает</b><br><span>закрытия смены</span>':'＋'}</button></td>`}).join('')}</tr>`).join('');
+      const summaries=shiftState.employees.map(employee=>{const sums=employeeMonthTotals(employee);return `<div class="card"><span class="note">${escapeHtml(employee)}</span><b class="${sums.total<0?'bad':sums.total>0?'ok':''}">${sums.total>0?'+':''}${money(sums.total)}</b><span class="detail">Оклад: ${money(sums.salary)} · Бонусы: ${money(sums.bonus)} · Штрафы: ${money(sums.penalty)}</span></div>`}).join('');
+      target.innerHTML=`<table class="shift-table"><thead><tr><th>День</th><th>Дата</th>${headers}</tr></thead><tbody>${rows}</tbody></table><div class="motivation-summary">${summaries}</div>`;
+      target.querySelectorAll('[data-motivation-date]').forEach(button=>button.onclick=()=>openMotivationDay(button.dataset.motivationDate,shiftState.employees[Number(button.dataset.motivationEmployee)]));
+    }
+    function openMotivationDay(date,employee){
+      const dialog=$('motivationDialog'),events=motivationEvents.filter(event=>event.date===date&&event.employee===employee),sums=motivationDayTotals(employee,date,events),salaryInfo=sums.shift.closed?`<div class="motivation-salary"><b>Оклад за закрытую смену: +${money(sums.salary)}</b></div>`:sums.shift.planned?'<div class="motivation-salary pending"><b>Смена ещё не закрыта</b><br><span>Оклад пока не входит в итог дня.</span></div>':'<div class="motivation-salary pending"><span>Рабочая смена на этот день не назначена.</span></div>';
+      dialog.innerHTML=`<div class="motivation-dialog-inner"><div class="section-head"><div><h2 id="motivationDialogTitle">${escapeHtml(employee)} · ${date.split('-').reverse().join('.')}</h2><p class="note">Итог дня: ${sums.total>0?'+':''}${money(sums.total)} · оклад ${money(sums.salary)} · бонусы ${money(sums.bonus)} · штрафы ${money(sums.penalty)}</p></div><button type="button" id="motivationClose">Закрыть</button></div>${salaryInfo}<div id="motivationEvents">${events.length?events.map(event=>`<div class="motivation-event"><strong class="${event.type==='bonus'?'plus':'minus'}">${event.type==='bonus'?'+':'−'}${money(event.amount)}</strong><div><b>${escapeHtml(event.reason||'Без причины')}</b>${event.notes?`<p class="note explain">${escapeHtml(event.notes)}</p>`:''}</div><button type="button" data-motivation-event-delete="${event.id}">Удалить</button></div>`).join(''):'<p class="note">Бонусов и штрафов за этот день пока нет.</p>'}</div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><form id="motivationEventForm"><div class="motivation-form"><div><label for="motivationType">Тип</label><select id="motivationType"><option value="bonus">Бонус</option><option value="penalty">Штраф</option></select></div><div><label for="motivationAmount">Сумма, ₽</label><input id="motivationAmount" type="number" min="0.01" step="0.01" required placeholder="Например: 500"></div><div class="wide"><label for="motivationReason">За что</label><input id="motivationReason" required maxlength="300" placeholder="Причина начисления"></div><div class="wide"><label for="motivationNotes">Комментарий</label><textarea id="motivationNotes" maxlength="2000" placeholder="Дополнительные подробности"></textarea></div></div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="primary" type="submit">Добавить запись</button></div></form></div>`;
+      dialog.querySelector('#motivationClose').onclick=()=>dialog.close();
+      dialog.querySelectorAll('[data-motivation-event-delete]').forEach(button=>button.onclick=()=>{motivationEvents=motivationEvents.filter(event=>String(event.id)!==String(button.dataset.motivationEventDelete));saveMotivationEvents();openMotivationDay(date,employee);renderMotivation()});
+      dialog.querySelector('#motivationEventForm').onsubmit=event=>{event.preventDefault();const amount=Math.abs(Number(dialog.querySelector('#motivationAmount').value)||0),reason=dialog.querySelector('#motivationReason').value.trim();if(!amount||!reason)return;motivationEvents.push({id:Date.now()+Math.random(),date,employee,type:dialog.querySelector('#motivationType').value,amount,reason,notes:dialog.querySelector('#motivationNotes').value.trim()});saveMotivationEvents();openMotivationDay(date,employee);renderMotivation()};
+      if(!dialog.open)dialog.showModal();
+    }
+    function initMotivation(){const month=$('motivationMonth');if(!month||month.dataset.ready)return;month.dataset.ready='1';month.value=motivationMonth;month.onchange=()=>{motivationMonth=month.value||motivationMonth;saveMotivationEvents();renderMotivation()};renderMotivation()}
 
     const toDb=x=>({id:x.id,category:x.category,name:x.name,type:x.type,norm_qty:x.normQty,norm_capital:x.normCapital,qty:x.qty,avg_cost:x.avg,market_price:x.market,sales_per_month:x.sales,min_margin:x.minMargin,notes:x.notes});
     const fromDb=x=>normalize({id:x.id,category:x.category,name:x.name,type:x.type,normQty:x.norm_qty,normCapital:x.norm_capital,qty:x.qty,avg:x.avg_cost,market:x.market_price,sales:x.sales_per_month,minMargin:x.min_margin,notes:x.notes});
@@ -362,6 +469,7 @@
     }
 
     async function startApp(){
+      if(normsStarted)return;normsStarted=true;
       try{
         await loadCloudData();
         if(realtimeChannel)await db.removeChannel(realtimeChannel);
@@ -369,19 +477,25 @@
           clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>loadCloudData().catch(()=>{}),250)
         }).subscribe()
       }catch(error){
+        normsStarted=false;
         setSync('Нормативы: нет связи с базой','bad');$('syncState').title=error.message
       }
     }
 
     document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{
       const view=btn.dataset.view;
+      if(!accessRole||(btn.dataset.access==='admin'&&accessRole!=='admin'))return;
       document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===btn));
       $('overviewView').classList.toggle('hidden',view!=='overview');
       $('normsView').classList.toggle('hidden',view!=='norms');
       $('repairsView').classList.toggle('hidden',view!=='repairs');
-      $('addBtn').classList.toggle('hidden',view!=='norms');
-      ['exportBtn','importBtn','syncState'].forEach(id=>$(id).classList.toggle('hidden',view==='repairs'));
+      $('shiftsView').classList.toggle('hidden',view!=='shifts');
+      $('motivationView').classList.toggle('hidden',view!=='motivation');
+      $('addBtn').classList.toggle('hidden',view!=='norms'||accessRole!=='admin');
+      ['exportBtn','importBtn','syncState'].forEach(id=>$(id).classList.toggle('hidden',view==='repairs'||accessRole!=='admin'));
       if(view==='repairs')window.dispatchEvent(new Event('repairs-visible'))
+      if(view==='shifts')initShifts()
+      if(view==='motivation')initMotivation()
     });
     $('addBtn').onclick=()=>openEdit();$('closeBtn').onclick=()=>$('modal').classList.add('hidden');
     $('saveBtn').onclick=async()=>{
@@ -395,8 +509,10 @@
     $('analyticsSearch').oninput=renderAnalytics;$('analyticsCategory').onchange=renderAnalytics;$('analyticsSort').onchange=renderAnalytics;
     $('resetDemo').onclick=async()=>{if(confirm('Вернуть нормативы v0.2 в общей базе? Текущие общие данные будут заменены. Сначала рекомендуется экспортировать резервную копию.')){try{await replaceCloud(structuredClone(defaults))}catch(error){setSync('Не сохранено','bad');alert(error.message)}}};
     $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('importFile').click();$('importFile').onchange=e=>e.target.files[0]&&importBackup(e.target.files[0]);
-    startApp();
+    $('accessForm').onsubmit=async event=>{event.preventDefault();const button=$('accessSubmit'),code=$('accessCode').value;button.disabled=true;accessMessage('Проверка кода…');try{await ensureAppUser();const result=await db.rpc('unlock_app',{p_code:code});if(result.error)throw result.error;const answer=result.data?.[0];if(!answer?.ok){accessMessage(answer?.message||'Неверный код доступа.',true);$('accessCode').select();return}applyAccess(answer.access_role)}catch(error){accessMessage(/fetch|network|load failed/i.test(error.message||'')?'Нет связи с сервером. Повторите позже.':'Не удалось выполнить вход. Повторите попытку.',true)}finally{button.disabled=false}};
+    $('accessLogout').onclick=async()=>{await db.auth.signOut({scope:'local'});window.dispatchEvent(new Event('app-access-signout'));showAccessGate('Вы вышли из приложения.')};
+    restoreAccess();
   </script>
-  <script type="module" src="repairs.js?v=4"></script>
+  <script type="module" src="repairs.js?v=5"></script>
 </body>
 </html>
