@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {EMPTY,validate,debt,paymentLabel,today,overdue} from '../repairs-model.mjs';
+import {EMPTY,validate,debt,paymentLabel,today,overdue,isDraft} from '../repairs-model.mjs';
 const order=()=>({...EMPTY,client:'Тест',device:'Телефон',reason:'Диагностика',owner:'Сотрудник',next_action:'Проверить'});
 test('unknown amount is not a settled payment',()=>{const r=order();assert.equal(debt(r,'client'),null);assert.equal(paymentLabel(r),'Стоимость не задана');r.status='closed';assert.match(validate(r),/закрытия/);});
 test('unpaid, partial and full payments retain correct balances',()=>{const r={...order(),client_total:1234.56};assert.equal(paymentLabel(r),'Не оплачено');r.client_paid=234.55;r.client_paid_date=today();assert.equal(paymentLabel(r),'Частично оплачено');assert.equal(debt(r,'client'),1000.01);r.client_paid=1234.56;assert.equal(paymentLabel(r),'Оплачено клиентом');assert.equal(debt(r,'client'),0);assert.equal(validate(r),'');});
 test('zero price is explicitly free',()=>{const r={...order(),client_total:0,service_total:0,status:'closed'};assert.equal(paymentLabel(r),'Без оплаты');assert.equal(validate(r),'');});
 test('overpayment, missing amount, dates and fractions rejected',()=>{for(const attrs of [{client_total:10,client_paid:11},{client_paid:1},{client_total:10,client_paid:5},{client_total:-1},{client_total:1.001},{client_total:Infinity},{service_total:4,service_paid:2,service_paid_date:'2999-01-01'}])assert.notEqual(validate({...order(),...attrs}),'');});
 test('closed order must settle both counterparties',()=>{const r={...order(),status:'closed',client_total:50,client_paid:50,client_paid_date:today(),service_total:30,service_paid:20,service_paid_date:today()};assert.match(validate(r),/расчёты/);r.service_paid=30;assert.equal(validate(r),'');});
-test('waiting needs reason and active repairs need next step',()=>{assert.notEqual(validate({...order(),status:'waiting'}),'');assert.notEqual(validate({...order(),next_action:''}),'');assert.equal(validate({...order(),status:'waiting',waiting_reason:'Деталь'}),'');});
+test('incomplete repairs can be saved as drafts',()=>{const r={...EMPTY};assert.equal(isDraft(r),true);assert.equal(validate(r),'');assert.equal(isDraft(order()),false);});
+test('draft repairs cannot be closed',()=>{const r={...EMPTY,status:'closed',client_total:0,service_total:0};assert.match(validate(r),/Перед закрытием/);});
 test('due date uses shop day and excludes closed records',()=>{assert.equal(overdue({...order(),due_date:'2000-01-01'}),true);assert.equal(overdue({...order(),due_date:today()}),false);assert.equal(overdue({...order(),status:'closed',due_date:'2000-01-01'}),false);});

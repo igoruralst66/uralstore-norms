@@ -12,11 +12,9 @@ export function paymentLabel(row,side='client'){
   return paid>0?'Частично оплачено':'Не оплачено';
 }
 export const overdue = row => row.status!=='closed' && !!row.due_date && row.due_date<today();
+export const isDraft = row => ['client','device','reason','next_action'].some(key=>!row[key]?.trim());
 export function validate(row){
-  for(const key of ['client','device','reason','owner'])if(!row[key]?.trim())return `Заполните поле «${FIELDS[key]}».`;
   if(!STATUSES[row.status])return 'Выберите статус.';
-  if(row.status==='waiting'&&!row.waiting_reason?.trim())return 'Укажите, чего ждём.';
-  if(row.status!=='closed'&&!row.next_action?.trim())return 'Укажите следующий шаг.';
   for(const side of ['client','service']){
     const total=row[side+'_total'],paid=row[side+'_paid'];
     for(const n of [total,paid])if(n!=null&&(!Number.isFinite(n)||n<0||n>9999999999.99||Math.abs(n*100-Math.round(n*100))>0.0001))return 'Суммы должны быть неотрицательными, с точностью до копейки.';
@@ -26,6 +24,7 @@ export function validate(row){
     if(row[side+'_paid_date']&&row[side+'_paid_date']>today())return 'Дата оплаты не может быть в будущем.';
   }
   if(row.repeat_of!=null&&(!Number.isSafeInteger(row.repeat_of)||row.repeat_of<1))return 'Укажите корректный номер предыдущего заказа.';
+  if(row.status==='closed'&&isDraft(row))return 'Перед закрытием заполните клиента, устройство, причину обращения и следующий шаг.';
   if(row.status==='closed'&&(debt(row,'client')!==0||debt(row,'service')!==0))return 'Для закрытия укажите обе стоимости (0 для бесплатного ремонта) и завершите расчёты. Пока можно выбрать «Выдан».';
   return '';
 }
