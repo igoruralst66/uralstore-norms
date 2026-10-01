@@ -24,7 +24,7 @@ const seed=()=>[
   {...EMPTY,id:102,client:'Демо-клиент 3',device:'iPhone 13',reason:'Замена аккумулятора',owner:'Сотрудник',status:'ready',next_action:'Выдать устройство клиенту',client_total:6000,service_total:4000,service_paid:4000,service_paid_date:today(),version:1,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
 ];
 function login(){
-  root.innerHTML=`<section class="panel repair-login"><span class="tag">Доступ для сотрудников</span><h2 style="margin-top:16px">Сервисные ремонты</h2><p class="note explain" style="margin-top:10px">Заказы, оплата и история действий доступны сотрудникам магазина после входа.</p><form id="repairLogin"><label for="repairEmail">Рабочая почта</label><input id="repairEmail" type="email" autocomplete="username" required placeholder="name@example.com"><label for="repairPassword">Пароль</label><input id="repairPassword" type="password" autocomplete="current-password" required><button class="primary" type="submit">Войти</button></form><button id="repairOtpSend" type="button">Получить код на почту</button><form id="repairOtp" hidden><label for="repairCode">Код из письма</label><input id="repairCode" autocomplete="one-time-code" inputmode="numeric" required><button class="primary" type="submit">Подтвердить код</button></form><p id="repairAuthMessage" class="repair-message" role="status"></p><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><button id="repairDemo">Посмотреть демо</button><p class="note">Демо содержит вымышленные заказы и не сохраняется в общую базу.</p></section>`;
+  root.innerHTML=`<section class="panel repair-login"><span class="tag">Доступ для сотрудников</span><h2 style="margin-top:16px">Сервисные ремонты</h2><p class="note explain" style="margin-top:10px">Введите своё имя и общий код магазина. Имя сохранится в истории ваших действий.</p><form id="repairLogin"><label for="repairName">Ваше имя</label><input id="repairName" autocomplete="name" maxlength="120" required placeholder="Например: Иван"><label for="repairCode">Код доступа</label><input id="repairCode" type="password" autocomplete="current-password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="4 цифры"><button class="primary" type="submit">Открыть ремонты</button></form><p id="repairAuthMessage" class="repair-message" role="status"></p><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><button id="repairDemo">Посмотреть демо</button><p class="note">Демо содержит вымышленные заказы и не сохраняется в общую базу.</p></section>`;
   find('repairDemo').onclick=()=>{epoch++;demo=true;rows=seed();eventsById={};notice='';scope='active';filter='all';query='';render();};
   const authAction=async action=>{
     if(authBusy)return;authBusy=true;
@@ -35,19 +35,22 @@ function login(){
     finally{authBusy=false;root.querySelectorAll('button').forEach(b=>b.disabled=false);}
   };
   find('repairLogin').onsubmit=e=>{e.preventDefault();authAction(async()=>{
-    const {error}=await client.auth.signInWithPassword({email:find('repairEmail').value.trim(),password:find('repairPassword').value});
-    if(error)throw new Error('Не удалось войти. Проверьте почту и пароль или получите код на почту.');
-  });};
-  let otpEmail='';
-  find('repairOtpSend').onclick=()=>authAction(async output=>{
-    if(!find('repairEmail').reportValidity())throw new Error('Укажите рабочую почту.');
-    otpEmail=find('repairEmail').value.trim();
-    const {error}=await client.auth.signInWithOtp({email:otpEmail,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname+'#repairs'}});
-    if(error)throw error;
-    find('repairOtp').hidden=false;find('repairPassword').required=false;showMessage(output,'Если почта зарегистрирована, придёт письмо со ссылкой или кодом для входа.',false);
-  });
-  find('repairOtp').onsubmit=e=>{e.preventDefault();authAction(async()=>{
-    const {error}=await client.auth.verifyOtp({email:otpEmail,token:find('repairCode').value.trim(),type:'email'});if(error)throw new Error('Код не подошёл или истёк. Запросите новый код.');
+    const displayName=find('repairName').value.trim(),accessCode=find('repairCode').value;
+    if(displayName.length<2)throw new Error('Укажите имя сотрудника.');
+    let activeUser=user;
+    if(!activeUser){
+      const {data,error}=await client.auth.signInAnonymously();
+      if(error)throw new Error('Не удалось открыть защищённую сессию. Повторите попытку.');
+      activeUser=data.user;user=activeUser;
+    }
+    const {data:unlockRows,error}=await client.rpc('unlock_repairs',{p_code:accessCode,p_name:displayName});
+    if(error){
+      if(error.code==='P0001')throw new Error(error.message);
+      throw error;
+    }
+    const unlock=unlockRows?.[0];
+    if(!unlock?.ok)throw new Error(unlock?.message||'Неверный код доступа.');
+    member=null;rows=[];notice='';await load();
   });};
 }
 function ticket(row){
@@ -129,7 +132,7 @@ async function load(){
   try{
     const memberResult=await client.from('repair_members').select('display_name,active').eq('user_id',user.id).maybeSingle();if(memberResult.error)throw memberResult.error;
     if(guard!==epoch)return;
-    if(!memberResult.data?.active){member=null;rows=[];dialog.close();dialog.innerHTML='';root.innerHTML='<div class="panel repair-empty"><h2>Доступ ещё не выдан</h2><p>Вход выполнен. Администратор должен добавить вас в список сотрудников раздела «Ремонты».</p><button id="repairRetry">Проверить доступ</button> <button id="repairExit">Выйти</button></div>';find('repairRetry').onclick=load;find('repairExit').onclick=signout;return;}
+    if(!memberResult.data?.active){member=null;rows=[];dialog.close();dialog.innerHTML='';login();return;}
     member=memberResult.data;
     const collected=[];for(let from=0;;from+=500){const response=await client.from('repairs').select('*').order('id',{ascending:false}).range(from,from+499);if(response.error)throw response.error;collected.push(...response.data);if(response.data.length<500)break;}
     if(guard!==epoch)return;rows=collected;notice='';lastUpdated=new Date().toISOString();render();
@@ -154,8 +157,8 @@ function setUser(next){
 }
 login();
 if(window.supabase){
-  client=window.supabase.createClient('https://cwzobgsgsfbcaryspunh.supabase.co','sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x',{auth:{storageKey:'uralstore-repairs-auth',storage:sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  client=window.supabase.createClient('https://cwzobgsgsfbcaryspunh.supabase.co','sb_publishable_PTIm3UNI0giJKCT4DOY5JA_vh47Ec0x',{auth:{storageKey:'uralstore-repairs-auth',storage:localStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>setUser(session?.user||null),0);});
   client.auth.getSession().then(({data,error})=>{if(error)showMessage(find('repairAuthMessage'),friendly(error));else setUser(data.session?.user||null);});
 }
-if(location.hash==='#repairs'||location.hash.includes('access_token='))document.querySelector('[data-view="repairs"]').click();
+if(location.hash==='#repairs')document.querySelector('[data-view="repairs"]').click();
