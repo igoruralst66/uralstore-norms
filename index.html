@@ -170,7 +170,7 @@
 
     <main id="shiftsView" class="hidden">
       <div class="panel">
-        <div class="section-head"><div><h2>Календарь смен</h2><p class="note explain">Укажите дневной оклад сотрудника. Рабочая смена попадёт в расчёт мотивации только после нажатия «Закрыть смену».</p></div></div>
+        <div class="section-head"><div><h2>Календарь смен</h2><p class="note explain">Укажите дневной оклад сотрудника. Рабочая смена попадёт в расчёт мотивации только после нажатия «Закрыть смену».</p></div><span class="sync" data-staff-sync>Подключение…</span></div>
         <div class="shift-toolbar" style="margin-top:14px"><div><label for="shiftMonth">Месяц</label><input id="shiftMonth" type="month"></div><div><label for="shiftEmployee">Новый сотрудник</label><input id="shiftEmployee" placeholder="Имя сотрудника"></div><button id="shiftAddEmployee" class="primary">Добавить сотрудника</button></div>
       </div>
       <div class="panel shift-tablewrap"><div id="shiftCalendar"></div></div>
@@ -178,7 +178,7 @@
 
     <main id="motivationView" class="hidden">
       <div class="panel">
-        <div class="section-head"><div><h2>Календарь мотивации</h2><p class="note explain">Итог дня: оклад за закрытую смену + бонусы − штрафы. Нажмите на ячейку, чтобы добавить бонус или штраф.</p></div><div><label for="motivationMonth">Месяц</label><input id="motivationMonth" type="month"></div></div>
+        <div class="section-head"><div><h2>Календарь мотивации</h2><p class="note explain">Итог дня: оклад за закрытую смену + бонусы − штрафы. Нажмите на ячейку, чтобы добавить бонус или штраф.</p></div><div><span class="sync" data-staff-sync>Подключение…</span><label for="motivationMonth" style="margin-top:8px">Месяц</label><input id="motivationMonth" type="month"></div></div>
       </div>
       <div class="panel motivation-calendar"><div id="motivationCalendar"></div></div>
     </main>
@@ -264,7 +264,7 @@
     function showAccessGate(message='Введите код доступа.'){accessRole=null;document.body.classList.add('app-locked');$('accessRole').classList.add('hidden');$('accessLogout').classList.add('hidden');$('accessCode').value='';accessMessage(message,false)}
     async function ensureAppUser(){const current=await db.auth.getSession();if(current.error)throw current.error;if(current.data.session?.user)return current.data.session.user;const created=await db.auth.signInAnonymously();if(created.error)throw created.error;return created.data.user}
     function openView(view){const button=document.querySelector(`.tab[data-view="${view}"]`);if(button)button.click()}
-    function applyAccess(role){accessRole=role;const admin=role==='admin';document.querySelectorAll('[data-access="admin"]').forEach(node=>node.classList.toggle('role-hidden',!admin));document.body.classList.remove('app-locked');$('accessRole').textContent=admin?'Администратор':'Сотрудник';$('accessRole').classList.remove('hidden');$('accessLogout').classList.remove('hidden');if(admin){if(!normsStarted)startApp();openView('overview')}else openView('repairs');window.dispatchEvent(new CustomEvent('app-access-ready',{detail:{role}}))}
+    function applyAccess(role){accessRole=role;window.uralstoreAccessRole=role;const admin=role==='admin';document.querySelectorAll('[data-access="admin"]').forEach(node=>node.classList.toggle('role-hidden',!admin));document.body.classList.remove('app-locked');$('accessRole').textContent=admin?'Администратор':'Сотрудник';$('accessRole').classList.remove('hidden');$('accessLogout').classList.remove('hidden');if(admin){if(!normsStarted)startApp();openView('overview')}else openView('repairs');window.dispatchEvent(new CustomEvent('app-access-ready',{detail:{role}}))}
     async function restoreAccess(){accessMessage('Проверка подключения…');try{const session=await db.auth.getSession();if(session.error)throw session.error;if(!session.data.session){showAccessGate();return}const result=await db.rpc('get_app_access');if(result.error)throw result.error;const role=result.data?.[0]?.access_role;if(role)applyAccess(role);else showAccessGate()}catch(error){showAccessGate(/fetch|network|load failed/i.test(error.message||'')?'Нет связи с сервером. Проверьте интернет и повторите.':'Не удалось проверить доступ. Повторите попытку.');$('accessMessage').classList.add('bad')}}
 
     let cachedData;
@@ -368,6 +368,7 @@
       el.innerHTML='<option value="">Все категории</option>'+cats.map(c=>`<option ${c===prev?'selected':''}>${escapeHtml(c)}</option>`).join('');
     }
     function escapeHtml(value){return String(value).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
+    window.uralstoreUi={money,escapeHtml};
 
     function renderNorms(){
       fillCategories('categoryFilter');
@@ -513,6 +514,7 @@
     $('accessLogout').onclick=async()=>{await db.auth.signOut({scope:'local'});window.dispatchEvent(new Event('app-access-signout'));showAccessGate('Вы вышли из приложения.')};
     restoreAccess();
   </script>
-  <script type="module" src="repairs.js?v=5"></script>
+  <script type="module" src="staff.js?v=1"></script>
+  <script type="module" src="repairs.js?v=6"></script>
 </body>
 </html>
