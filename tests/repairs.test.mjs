@@ -9,4 +9,5 @@ test('overpayment, missing amount, dates and fractions rejected',()=>{for(const 
 test('closed order must settle both counterparties',()=>{const r={...order(),status:'closed',client_total:50,client_paid:50,client_paid_date:today(),service_total:30,service_paid:20,service_paid_date:today()};assert.match(validate(r),/расчёты/);r.service_paid=30;assert.equal(validate(r),'');});
 test('incomplete repairs can be saved as drafts',()=>{const r={...EMPTY};assert.equal(isDraft(r),true);assert.equal(validate(r),'');assert.equal(isDraft(order()),false);});
 test('draft repairs cannot be closed',()=>{const r={...EMPTY,status:'closed',client_total:0,service_total:0};assert.match(validate(r),/Перед закрытием/);});
+test('drafts remain valid while an optional repeat link is cleared in the UI',()=>{const r={...EMPTY,repeat_of:999};assert.equal(isDraft(r),true);assert.equal(validate(r),'');});
 test('due date uses shop day and excludes closed records',()=>{assert.equal(overdue({...order(),due_date:'2000-01-01'}),true);assert.equal(overdue({...order(),due_date:today()}),false);assert.equal(overdue({...order(),status:'closed',due_date:'2000-01-01'}),false);});

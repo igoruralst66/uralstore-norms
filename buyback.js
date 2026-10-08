@@ -71,7 +71,9 @@ let state = loadState();
 let mode = 'used';
 let search = '';
 let showArchived = false;
-let expanded = new Set(['used-iphone-11','new-iphone-17']);
+// При входе справочник начинается со свернутого списка категорий.
+// В течение работы раскрытые категории остаются открытыми до перезагрузки страницы.
+let expanded = new Set();
 let editing = null;
 let columnOrder = loadColumnOrder();
 let historyEntries = loadHistory();
@@ -80,6 +82,7 @@ let draggedCategoryId = null;
 let cloudStarted = false;
 let cloudLoading = false;
 let cloudSaving = false;
+let cloudDirty = false;
 let cloudSaveTimer = null;
 let cloudReloadTimer = null;
 let cloudChannel = null;
@@ -197,12 +200,15 @@ function setSync(text,bad=false){
 
 function queueCloudSave(){
   if(!cloudReady||!db)return;
+  cloudDirty=true;
+  if(cloudSaving)return;
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer=setTimeout(saveCloud,80);
 }
 
 async function saveCloud(){
   if(!cloudReady||cloudSaving||!db)return;
+  cloudDirty=false;
   cloudSaving=true;setSync('Сохранение…');
   try{
     const result=await db.from('buyback_shared_state').upsert({id:1,state,column_order:columnOrder,history:historyEntries,updated_at:new Date().toISOString()},{onConflict:'id'});
@@ -211,7 +217,7 @@ async function saveCloud(){
   }catch(error){
     console.error(error);setSync('Не сохранено',true);
     alert('Не удалось сохранить выкуп в общей базе: '+error.message);
-  }finally{cloudSaving=false}
+  }finally{cloudSaving=false;if(cloudDirty){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(saveCloud,80)}}
 }
 
 async function loadCloud({allowSeed=true}={}){
@@ -473,8 +479,10 @@ function openCategoryDialog(id=null){
   const dialog = ensureDialog();
   const category = id ? state.categories.find(entry=>entry.id===id) : {name:'',note:''};
   editing = {type:'category',id};
-  dialog.innerHTML = `<form id="buybackDialogForm" class="buyback-dialog-inner"><div class="section-head"><div><h2>${id?'Изменить категорию':'Новая категория'}</h2><p class="note">Раздел: ${mode==='used'?'Б/У техника':'Новая техника'}</p></div><button type="button" data-buyback-dialog-close>Закрыть</button></div><div class="buyback-dialog-form">${memberField()}<div class="wide"><label for="buybackCategoryName">Название категории</label><input id="buybackCategoryName" required maxlength="120" value="${ui().escapeHtml(category.name)}" placeholder="Например: iPhone 15"></div><div class="wide"><label for="buybackCategoryNote">Комментарий</label><textarea id="buybackCategoryNote" maxlength="500" placeholder="Необязательное пояснение">${ui().escapeHtml(category.note)}</textarea></div></div><div class="buyback-dialog-actions"><button type="button" data-buyback-dialog-close>Отмена</button><button class="primary" type="submit">Сохранить</button></div></form>`;
+  dialog.innerHTML = `<form id="buybackDialogForm" class="buyback-dialog-inner"><div class="section-head"><div><h2>${id?'Изменить категорию':'Новая категория'}</h2><p class="note">Раздел: ${mode==='used'?'Б/У техника':'Новая техника'}</p></div><button type="button" data-buyback-dialog-close>Закрыть</button></div><div class="buyback-dialog-form">${memberField()}<div class="wide"><label for="buybackCategoryName">Название категории</label><input id="buybackCategoryName" required maxlength="120" value="${ui().escapeHtml(category.name)}" placeholder="Например: iPhone 15"></div><div class="wide"><label for="buybackCategoryNote">Комментарий</label><textarea id="buybackCategoryNote" maxlength="500" placeholder="Необязательное пояснение">${ui().escapeHtml(category.note)}</textarea></div></div><div class="buyback-dialog-actions">${id&&isAdmin()?'<button type="button" class="buyback-danger" id="buybackCategoryDelete">Удалить категорию</button>':''}<button type="button" data-buyback-dialog-close>Отмена</button><button class="primary" type="submit">Сохранить</button></div></form>`;
   bindDialog(dialog);
+  const remove=dialog.querySelector('#buybackCategoryDelete');
+  if(remove)remove.onclick=()=>deleteCategory(id,dialog);
   dialog.showModal();
 }
 
@@ -567,10 +575,29 @@ function findCategoryByItem(itemId){
 
 function deleteItem(itemId){
   const category = findCategoryByItem(itemId);
-  if(!category || !confirm('Удалить эту позицию из локального прототипа?')) return;
+  if(!category || !confirm('Удалить эту позицию из общей базы выкупа?')) return;
+  const beforeState=clone(state);
   const item=category.items.find(entry=>entry.id===itemId);
-  if(item)addHistory('Удалил позицию',item.model||'Без названия',category.name);
+  if(item)addHistory('Удалил позицию',item.model||'Без названия',category.name,memberName()||'Имя не указано',beforeState);
   category.items = category.items.filter(item=>item.id!==itemId);
+  saveState();
+  render();
+}
+
+function deleteCategory(categoryId,dialog){
+  if(!isAdmin())return;
+  const category=state.categories.find(entry=>entry.id===categoryId);
+  if(!category)return;
+  const count=category.items.length;
+  const message=count
+    ?`Удалить категорию «${category.name}» и все позиции внутри (${count})? Действие попадёт в журнал и его можно будет отменить, пока оно входит в три последних.`
+    :`Удалить пустую категорию «${category.name}»?`;
+  if(!confirm(message))return;
+  const beforeState=clone(state);
+  state.categories=state.categories.filter(entry=>entry.id!==categoryId);
+  expanded.delete(categoryId);
+  addHistory('Удалил категорию',category.name,count?`Удалено позиций: ${count}`:'Категория была пустой',memberName()||'Имя не указано',beforeState);
+  dialog.close();
   saveState();
   render();
 }
