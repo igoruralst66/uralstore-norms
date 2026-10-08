@@ -1,5 +1,9 @@
 .turnover-head,.turnover-toolbar,.turnover-card-head,.turnover-card-footer,.turnover-category-manager-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .turnover-head-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.turnover-copy-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.turnover-copy-actions button{font-size:12px;min-height:32px;padding:6px 9px}
+.turnover-history-row{padding:12px 0;border-bottom:1px solid var(--line)}
+.turnover-history-row>span{display:block;font-size:12px;color:var(--muted);margin-top:5px}
 .turnover-local{font-size:12px;color:#805000;background:#fff8e8;border-radius:999px;padding:7px 10px}
 .turnover-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .turnover-summary .card b{font-size:19px}

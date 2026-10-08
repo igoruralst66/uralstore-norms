@@ -21,11 +21,12 @@ async function ensureRepairRead(){
 }
 async function collectBackup(){
   const repairs=await ensureRepairRead();
-  const [norms,buyback,employees,shifts,motivation,repairEvents]=await Promise.all([
-    rows('norms','*','id'),rows('buyback_shared_state','*'),rows('staff_employees','*','sort_order'),rows('staff_shifts','*','shift_date'),rows('staff_motivation_events','*','event_date'),rows('repair_events','*','id')
+  const [norms,buyback,employees,shifts,motivation,repairEvents,turnoverRows,turnoverHistory]=await Promise.all([
+    rows('norms','*','id'),rows('buyback_shared_state','*'),rows('staff_employees','*','sort_order'),rows('staff_shifts','*','shift_date'),rows('staff_motivation_events','*','event_date'),rows('repair_events','*','id'),rows('turnover_shared_state','*'),rows('turnover_events','*','id')
   ]);
-  let turnover={categories:[],items:[]};try{turnover=JSON.parse(localStorage.getItem(TURNOVER_KEY)||'null')||turnover}catch{}
-  return {schema:SCHEMA,version:VERSION,exportedAt:new Date().toISOString(),data:{norms,buyback:buyback[0]||null,employees,shifts,motivation,repairs,repairEvents,turnover}};
+  const turnover=turnoverRows[0]?.state||{categories:[],items:[]};
+  let turnoverLocal=null;try{turnoverLocal=JSON.parse(localStorage.getItem(TURNOVER_KEY)||'null')}catch{}
+  return {schema:SCHEMA,version:VERSION,exportedAt:new Date().toISOString(),data:{norms,buyback:buyback[0]||null,employees,shifts,motivation,repairs,repairEvents,turnover,turnoverHistory,turnoverLocal}};
 }
 function saveJson(payload){
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
@@ -33,7 +34,7 @@ function saveJson(payload){
 }
 async function downloadBackup(){
   downloadButton.disabled=true;downloadButton.textContent='Подготовка копии…';
-  try{saveJson(await collectBackup());alert('Общая резервная копия скачана. В ней находятся все разделы, включая ремонты и локальный контроль товаров.')}
+  try{saveJson(await collectBackup());alert('Общая резервная копия скачана. Контроль товаров и его журнал взяты из общей базы; исходная локальная копия также сохранена в файле.')}
   catch(error){console.error(error);alert('Не удалось создать полную копию: '+(error.message||'неизвестная ошибка'))}
   finally{downloadButton.disabled=false;downloadButton.textContent='Скачать копию'}
 }
@@ -70,11 +71,12 @@ async function restoreStaff(data){
 async function restoreBackup(file){
   const data=validateBackup(JSON.parse(await file.text()));
   const counts=`нормативов: ${data.norms.length}, сотрудников: ${data.employees.length}, смен: ${data.shifts.length}, записей мотивации: ${data.motivation.length}, ремонтов в архиве: ${data.repairs.length}`;
-  if(!confirm(`Восстановить общие данные из копии?\n\n${counts}\n\nНормативы, выкуп, смены, мотивация и локальный контроль товаров будут заменены. Ремонты останутся без изменений: они включены в файл для архива и защищены от массовой перезаписи.`))return;
+  if(!confirm(`Восстановить общие данные из копии?\n\n${counts}\n\nНормативы, выкуп, смены и мотивация будут заменены. В контроль товаров будут добавлены только отсутствующие позиции: более новые общие изменения сохранятся. Ремонты останутся без изменений: они включены в файл для архива и защищены от массовой перезаписи.`))return;
   restoreButton.disabled=true;restoreButton.textContent='Восстановление…';
   try{
     await restoreNorms(data.norms);await restoreBuyback(data.buyback);await restoreStaff(data);
-    localStorage.setItem(TURNOVER_KEY,JSON.stringify(data.turnover));
+    if(!window.uralstoreTurnoverImport)throw new Error('Раздел контроля товаров ещё не подключён.');
+    await window.uralstoreTurnoverImport(data.turnover,'Администратор');
     alert('Копия восстановлена. Страница сейчас обновится. Ремонты не перезаписывались.');location.reload();
   }catch(error){console.error(error);alert('Восстановление остановлено: '+(error.message||'неизвестная ошибка')+'. Уже выполненные разделы могли сохраниться — не закрывайте исходный файл копии.')}
   finally{restoreButton.disabled=false;restoreButton.textContent='Восстановить копию';restoreInput.value=''}

@@ -1,6 +1,6 @@
 import {TURNOVER_STATUSES,TURNOVER_CONDITIONS,daysInStock,stockAgeState,filterTurnoverItems} from './turnover-model.mjs';
+import {TurnoverSync,TURNOVER_KEYS} from './turnover-sync.mjs';
 
-const STORAGE_KEY='uralstore_turnover_prototype_v01';
 const MEMBER_KEY='uralstore_buyback_member_v01';
 const defaults={
   categories:[
@@ -17,22 +17,24 @@ const clone=value=>JSON.parse(JSON.stringify(value));
 const newId=prefix=>`${prefix}-${globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`}`;
 const esc=value=>(window.uralstoreUi?.escapeHtml||String)(value??'');
 const money=value=>`${Number(value||0).toLocaleString('ru-RU')} ₽`;
-let state=load();
+let state=clone(defaults);
 let filters={query:'',category:'all',condition:'all',status:'active'};
 let editingId=null;
+let editingVersion=null;
+let syncText='Подключение…',syncBad=false;
+const sync=new TurnoverSync({db:window.uralstoreDb,storage:localStorage,defaults,newId:()=>newId('device'),onChange:next=>{state=next;if(filters.category!=='all'&&!state.categories.some(category=>category.id===filters.category))filters.category='all';render()},onStatus:(message,bad)=>{syncText=message;syncBad=bad;const node=document.getElementById('turnoverSync');if(node){node.textContent=message;node.classList.toggle('bad',bad)}}});
+state=clone(sync.state);
 
-function load(){
-  try{
-    const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
-    if(saved&&Array.isArray(saved.categories)&&Array.isArray(saved.items))return saved;
-  }catch{}
-  return clone(defaults);
+async function save(next,action='edit',expectedVersion=sync.version){
+  try{await sync.commit(next,{actor:member()||'Сотрудник',action,expectedVersion});return true}
+  catch(error){alert(error.message||'Не удалось сохранить. Ваш вариант сохранён на устройстве.');return false}
+  finally{render()}
 }
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));render()}
+function canEdit(){return Boolean(window.uralstoreAccessRole)&&sync.ready&&!sync.busy}
 function admin(){return window.uralstoreAccessRole==='admin'}
 function member(){try{return String(localStorage.getItem(MEMBER_KEY)||'').trim()}catch{return ''}}
 function categoryName(categoryId){return state.categories.find(category=>category.id===categoryId)?.name||'Без категории'}
-function formatDate(value){if(!value)return 'Не указана';const [year,month,day]=value.split('-');return `${day}.${month}.${year}`}
+function formatDate(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value||'')))return 'Не указана';const [year,month,day]=value.split('-');return `${day}.${month}.${year}`}
 function dueState(item){if(!item.actionDue||item.status==='sold')return '';const today=new Date().toISOString().slice(0,10);return item.actionDue<today?'bad':item.actionDue===today?'warn':''}
 function statusTag(status){return `<span class="tag ${status==='sold'?'ok':status==='attention'?'warn':''}">${esc(TURNOVER_STATUSES[status]||status)}</span>`}
 function conditionTag(condition){return `<span class="tag">${esc(TURNOVER_CONDITIONS[condition]||'Не указано')}</span>`}
@@ -47,7 +49,9 @@ function render(){
   const sold=state.items.filter(item=>item.status==='sold').length;
   root.innerHTML=`
     <section class="panel">
-      <div class="turnover-head"><div><h2>Контроль товаров</h2><p class="note explain">Отдельные позиции, которым нужно внимание для более быстрой реализации.</p></div><div class="turnover-head-meta"><span class="turnover-local">Локальный прототип</span><button type="button" id="turnoverCategories">Категории</button><button type="button" class="primary" id="turnoverAdd">+ Добавить позицию</button></div></div>
+      <div class="turnover-head"><div><h2>Контроль товаров</h2><p class="note explain">Отдельные позиции, которым нужно внимание для более быстрой реализации.</p></div><div class="turnover-head-meta"><span id="turnoverSync" class="sync ${syncBad?'bad':'ok'}">${esc(syncText)}</span><button type="button" id="turnoverRefresh">Обновить</button><button type="button" id="turnoverHistory">Журнал изменений</button><button type="button" id="turnoverCategories" ${canEdit()?'':'disabled'}>Категории</button><button type="button" class="primary" id="turnoverAdd" ${canEdit()?'':'disabled'}>+ Добавить позицию</button></div></div>
+      <div class="turnover-copy-actions"><button type="button" id="turnoverLocalBackup">Скачать копию этого устройства</button><button type="button" id="turnoverImportLocal" ${canEdit()?'':'disabled'}>Перенести локальную копию</button><input type="file" id="turnoverLocalFile" accept=".json,application/json" hidden><span class="note">Перенос добавляет отсутствующие позиции, сохраняя общие изменения.</span></div>
+      ${sync.storage.getItem(TURNOVER_KEYS.pending)?'<p class="note warn">На этом устройстве есть несохранённый вариант. Он включён в копию устройства.</p>':''}
     </section>
     <section class="turnover-summary"><div class="card"><span class="note">Под контролем</span><b>${active.length}</b></div><div class="card"><span class="note">Срок действия прошёл</span><b class="${overdue?'bad':''}">${overdue}</b></div><div class="card"><span class="note">Предположительно в пути</span><b>${transit}</b></div><div class="card"><span class="note">Реализовано</span><b>${sold}</b></div></section>
     <section class="panel turnover-state-tabs">
@@ -87,11 +91,16 @@ function renderCard(item){
       ${item.notes?`<div class="turnover-wide"><span>Комментарий</span><p>${esc(item.notes)}</p></div>`:''}
       <div><span>Сделать до</span><b class="${dueState(item)}">${formatDate(item.actionDue)}</b></div>
     </div>
-    <footer class="turnover-card-footer"><span class="note">Обновлено: ${formatDate((item.updatedAt||'').slice(0,10))}${item.updatedBy?` · ${esc(item.updatedBy)}`:''}</span><div class="turnover-card-actions"><button type="button" class="${item.status==='sold'?'':'primary'}" data-turnover-sold="${item.id}">${item.status==='sold'?'Вернуть на остатки':'Товар реализован'}</button><button type="button" data-turnover-edit="${item.id}">Изменить</button>${admin()?`<button type="button" class="turnover-danger" data-turnover-delete="${item.id}">Удалить</button>`:''}</div></footer>
+    <footer class="turnover-card-footer"><span class="note">Обновлено: ${formatDate((item.updatedAt||'').slice(0,10))}${item.updatedBy?` · ${esc(item.updatedBy)}`:''}</span><div class="turnover-card-actions"><button type="button" class="${item.status==='sold'?'':'primary'}" data-turnover-sold="${item.id}" ${canEdit()?'':'disabled'}>${item.status==='sold'?'Вернуть на остатки':'Товар реализован'}</button><button type="button" data-turnover-edit="${item.id}" ${canEdit()?'':'disabled'}>Изменить</button>${admin()?`<button type="button" class="turnover-danger" data-turnover-delete="${item.id}" ${canEdit()?'':'disabled'}>Удалить</button>`:''}</div></footer>
   </article>`;
 }
 
 function bind(root){
+  root.querySelector('#turnoverRefresh').onclick=()=>init();
+  root.querySelector('#turnoverHistory').onclick=openHistory;
+  root.querySelector('#turnoverLocalBackup').onclick=downloadLocalCopy;
+  root.querySelector('#turnoverImportLocal').onclick=()=>root.querySelector('#turnoverLocalFile').click();
+  root.querySelector('#turnoverLocalFile').onchange=event=>event.target.files?.[0]&&importLocalFile(event.target.files[0]);
   root.querySelector('#turnoverAdd').onclick=()=>openItem();
   root.querySelector('#turnoverCategories').onclick=openCategories;
   root.querySelector('#turnoverSearch').oninput=event=>{filters.query=event.target.value;render();const input=document.getElementById('turnoverSearch');input?.focus();input?.setSelectionRange(filters.query.length,filters.query.length)};
@@ -114,7 +123,9 @@ function closeButtons(node){node.querySelectorAll('[data-turnover-close]').forEa
 function memberField(){return `<div><label for="turnoverUpdatedBy">Кто изменяет</label><input id="turnoverUpdatedBy" required minlength="2" maxlength="120" value="${esc(member())}" placeholder="Ваше имя"></div>`}
 
 function openItem(itemId=null){
+  if(!canEdit())return;
   const node=ensureDialog();editingId=itemId;
+  editingVersion=sync.version;
   const item=state.items.find(entry=>entry.id===itemId)||{name:'',condition:'used',identifier:'',category:state.categories[0]?.id||'',location:'',receivedDate:'',reason:'',recommendation:'',responsible:'',actionDue:'',status:'attention',notes:''};
   node.innerHTML=`<form id="turnoverForm" class="turnover-dialog-inner"><div class="section-head"><div><h2>${itemId?'Изменить позицию':'Новая позиция'}</h2><p class="note">Одна карточка — одна конкретная единица товара.</p></div><button type="button" data-turnover-close>Закрыть</button></div><div class="turnover-form">
     ${memberField()}<div><label for="turnoverName">Наименование товара</label><input id="turnoverName" required maxlength="180" value="${esc(item.name)}" placeholder="Например: iPhone 15 Pro 256 GB"></div>
@@ -133,11 +144,11 @@ function openItem(itemId=null){
   </div><div class="turnover-dialog-actions">${itemId&&admin()?'<button type="button" class="turnover-danger" id="turnoverDeleteInForm">Удалить позицию</button>':''}<button type="button" data-turnover-close>Отмена</button><button class="primary" type="submit">Сохранить</button></div></form>`;
   closeButtons(node);
   const remove=node.querySelector('#turnoverDeleteInForm');if(remove)remove.onclick=()=>{node.close();deleteItem(itemId)};
-  node.querySelector('#turnoverForm').onsubmit=event=>{event.preventDefault();saveItem(node);node.close()};
+  node.querySelector('#turnoverForm').onsubmit=async event=>{event.preventDefault();const button=node.querySelector('[type="submit"]');button.disabled=true;try{if(await saveItem(node))node.close()}finally{button.disabled=false}};
   node.showModal();
 }
 
-function saveItem(node){
+async function saveItem(node){
   const previous=state.items.find(item=>item.id===editingId);
   const updatedBy=node.querySelector('#turnoverUpdatedBy').value.trim();
   localStorage.setItem(MEMBER_KEY,updatedBy);
@@ -150,36 +161,69 @@ function saveItem(node){
     soldAt:node.querySelector('#turnoverStatusField').value==='sold'?(previous?.soldAt||new Date().toISOString()):'',
     soldBy:node.querySelector('#turnoverStatusField').value==='sold'?(previous?.soldBy||updatedBy):''
   };
-  state.items=previous?state.items.map(item=>item.id===editingId?next:item):[next,...state.items];save();
+  return save({...clone(state),items:previous?state.items.map(item=>item.id===editingId?next:item):[next,...state.items]},previous?'edit':'create',editingVersion);
 }
 
-function toggleSold(itemId){
+async function toggleSold(itemId){
+  if(!canEdit())return;
   const item=state.items.find(entry=>entry.id===itemId);if(!item)return;
   const isSold=item.status==='sold';
   const changedBy=member()||'Сотрудник';
-  state.items=state.items.map(entry=>entry.id!==itemId?entry:{...entry,status:isSold?'attention':'sold',soldAt:isSold?'':new Date().toISOString(),soldBy:isSold?'':changedBy,updatedAt:new Date().toISOString(),updatedBy:changedBy});
-  save();
+  await save({...clone(state),items:state.items.map(entry=>entry.id!==itemId?entry:{...entry,status:isSold?'attention':'sold',soldAt:isSold?'':new Date().toISOString(),soldBy:isSold?'':changedBy,updatedAt:new Date().toISOString(),updatedBy:changedBy})},isSold?'return':'sold');
 }
 
-function deleteItem(itemId){
-  if(!admin())return;
+async function deleteItem(itemId){
+  if(!admin()||!canEdit())return;
   const item=state.items.find(entry=>entry.id===itemId);if(!item)return;
   if(!confirm(`Удалить позицию «${item.name}»? Для проданного товара лучше выбрать статус «Реализовано», чтобы сохранить историю.`))return;
-  state.items=state.items.filter(entry=>entry.id!==itemId);save();
+  await save({...clone(state),items:state.items.filter(entry=>entry.id!==itemId)},'delete');
 }
 
 function openCategories(){
+  if(!canEdit())return;
   const node=ensureDialog();
   const draw=()=>{
+    const categoryVersion=sync.version;
     node.innerHTML=`<div class="turnover-dialog-inner"><div class="section-head"><div><h2>Категории товаров</h2><p class="note">Категории используются как фильтры: телефоны, ноутбуки, часы и другие.</p></div><button type="button" data-turnover-close>Закрыть</button></div><div class="turnover-category-manager">${state.categories.map(category=>{const count=state.items.filter(item=>item.category===category.id).length;return `<div class="turnover-category-manager-row"><div><b>${esc(category.name)}</b><div class="note">${count} поз.</div></div>${admin()?`<button type="button" class="turnover-danger" data-turnover-category-delete="${category.id}" ${count?'disabled title="Сначала перенесите позиции в другую категорию"':''}>Удалить</button>`:''}</div>`}).join('')}</div><form id="turnoverCategoryForm" class="turnover-form"><div class="wide"><label for="turnoverCategoryName">Новая категория</label><input id="turnoverCategoryName" required maxlength="100" placeholder="Например: Игровые приставки"></div><div class="wide turnover-dialog-actions"><button type="button" data-turnover-close>Готово</button><button class="primary" type="submit">Добавить категорию</button></div></form></div>`;
     closeButtons(node);
-    node.querySelector('#turnoverCategoryForm').onsubmit=event=>{event.preventDefault();const name=node.querySelector('#turnoverCategoryName').value.trim();if(!name)return;state.categories.push({id:newId('category'),name});localStorage.setItem(STORAGE_KEY,JSON.stringify(state));draw();render()};
-    node.querySelectorAll('[data-turnover-category-delete]').forEach(button=>button.onclick=()=>{const category=state.categories.find(entry=>entry.id===button.dataset.turnoverCategoryDelete);if(!category||state.items.some(item=>item.category===category.id)||!confirm(`Удалить пустую категорию «${category.name}»?`))return;state.categories=state.categories.filter(entry=>entry.id!==category.id);if(filters.category===category.id)filters.category='all';localStorage.setItem(STORAGE_KEY,JSON.stringify(state));draw();render()});
+    node.querySelector('#turnoverCategoryForm').onsubmit=async event=>{event.preventDefault();const name=node.querySelector('#turnoverCategoryName').value.trim();if(!name||!canEdit())return;await save({...clone(state),categories:[...state.categories,{id:newId('category'),name}]},'category',categoryVersion);draw()};
+    node.querySelectorAll('[data-turnover-category-delete]').forEach(button=>button.onclick=async()=>{const category=state.categories.find(entry=>entry.id===button.dataset.turnoverCategoryDelete);if(!category||!canEdit()||state.items.some(item=>item.category===category.id)||!confirm(`Удалить пустую категорию «${category.name}»?`))return;await save({...clone(state),categories:state.categories.filter(entry=>entry.id!==category.id)},'delete',categoryVersion);if(filters.category===category.id)filters.category='all';draw();render()});
   };
   draw();node.showModal();
 }
 
-window.initTurnover=render;
+async function openHistory(){
+  const node=ensureDialog();
+  try{
+    const events=await sync.history(),labels={create:'Добавлена позиция',edit:'Изменена позиция',sold:'Товар реализован',return:'Вернули на остатки',delete:'Удаление',category:'Категория добавлена',import:'Перенос локальной копии'};
+    node.innerHTML=`<div class="turnover-dialog-inner"><div class="section-head"><h2>Журнал контроля товаров</h2><button type="button" data-turnover-close>Закрыть</button></div><p class="note">Последние 100 действий. История хранится в общей базе.</p>${events.map(event=>`<div class="turnover-history-row"><b>${esc(labels[event.action]||event.action)}</b><span>${esc(event.actor_name)} · ${esc(new Date(event.created_at).toLocaleString('ru-RU'))} · версия ${Number(event.version)}</span>${event.action==='import'?`<p class="note">Добавлено позиций: ${Number(event.details?.addedItems||0)} · сохранено в исходной копии: ${Number(event.details?.skipped||0)}</p>`:''}</div>`).join('')||'<p class="note">Действий пока нет.</p>'}</div>`;
+    closeButtons(node);node.showModal();
+  }catch(error){alert('Не удалось загрузить журнал: '+error.message)}
+}
+function downloadLocalCopy(){
+  const payload={schema:'uralstore-turnover-device-copy',version:1,exportedAt:new Date().toISOString(),state:clone(state),local:sync.localCopies()};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download=`Контроль_товаров_копия_устройства_${new Date().toISOString().slice(0,10)}.json`;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+}
+async function importLocalFile(file){
+  try{
+    const payload=JSON.parse(await file.text());
+    // A device copy prioritises original prototype data over a shared cache.
+    const original=payload.local?.original||payload.local?.backup?.raw;
+    const imported=original?JSON.parse(original):payload.raw?JSON.parse(payload.raw):payload.state||payload.data?.turnover||payload;
+    if(!confirm('Добавить отсутствующие позиции из этой копии в общую базу? Совпадающие и ранее удалённые позиции останутся без изменений.'))return;
+    const receipt=await sync.importCopy(imported,member()||'Сотрудник');
+    alert(`Перенос завершён. Добавлено позиций: ${Number(receipt?.addedItems||0)}. Совпадающих или ранее удалённых: ${Number(receipt?.skipped||0)}. Исходный файл сохраните.`);
+  }catch(error){alert('Перенос не завершён: '+error.message)}finally{render()}
+}
+async function init(){
+  render();if(!window.uralstoreAccessRole)return;
+  try{if(sync.channel)await sync.load();else await sync.start()}catch(error){console.error('Контроль товаров:',error.message)}finally{render()}
+}
+window.initTurnover=init;
 window.uralstoreTurnoverExport=()=>clone(state);
-window.addEventListener('app-access-ready',render);
-if(window.uralstoreAccessRole)render();
+window.uralstoreTurnoverSnapshot=()=>sync.snapshot();
+window.uralstoreTurnoverImport=(data,actor)=>sync.importCopy(data,actor);
+window.addEventListener('app-access-ready',init);
+window.addEventListener('app-access-signout',()=>{sync.stop();document.getElementById('turnoverDialog')?.close()});
+window.addEventListener('focus',()=>{if(window.uralstoreAccessRole)sync.scheduleReload()});
+if(window.uralstoreAccessRole)init();

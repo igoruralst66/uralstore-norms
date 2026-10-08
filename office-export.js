@@ -25,19 +25,20 @@ async function collect(){
   const localBuyback=readLocal('uralstore_buyback_prototype_v01',{categories:[]});
   const localStaff=readLocal('uralstore_shifts_v01',{employees:[],cells:{},rates:[],closed:{}});
   const localMotivation=readLocal('uralstore_motivation_events_v01',{events:[]});
-  const turnover=window.uralstoreTurnoverExport?.()||readLocal('uralstore_turnover_prototype_v01',{categories:[],items:[]});
+  const localTurnover=window.uralstoreTurnoverExport?.()||readLocal('uralstore_turnover_prototype_v01',{categories:[],items:[]});
   const results=await Promise.allSettled([
     cloud('norms','*','id'),
     cloud('buyback_shared_state','state').then(rows=>rows?.[0]?.state||null),
     cloud('staff_employees','id,name,daily_rate,sort_order,active','sort_order'),
     cloud('staff_shifts','employee_id,shift_date,status,closed,updated_at','shift_date'),
     cloud('staff_motivation_events','id,employee_id,event_date,event_type,amount,reason,notes,created_at','event_date'),
-    cloud('repairs','*','id')
+    cloud('repairs','*','id'),
+    cloud('turnover_shared_state','state').then(rows=>rows?.[0]?.state||null)
   ]);
-  const sectionNames=['Нормативы','Выкуп','Сотрудники','Смены','Мотивация','Ремонты'];
+  const sectionNames=['Нормативы','Выкуп','Сотрудники','Смены','Мотивация','Ремонты','Контроль товаров — выгружена только копия устройства'];
   const warnings=results.flatMap((result,index)=>result.status==='rejected'?[`${sectionNames[index]}: ${result.reason?.message||'раздел недоступен'}`]:[]);
   const value=(index,fallback)=>results[index].status==='fulfilled'&&results[index].value!=null?results[index].value:fallback;
-  return {norms:value(0,localNorms),buyback:value(1,localBuyback),employees:value(2,null),shifts:value(3,null),motivation:value(4,null),repairs:value(5,[]),localStaff,localMotivation,turnover,warnings};
+  return {norms:value(0,localNorms),buyback:value(1,localBuyback),employees:value(2,null),shifts:value(3,null),motivation:value(4,null),repairs:value(5,[]),localStaff,localMotivation,turnover:value(6,localTurnover),warnings};
 }
 
 async function exportExcel(){
